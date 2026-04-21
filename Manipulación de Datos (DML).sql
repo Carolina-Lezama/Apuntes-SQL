@@ -367,6 +367,10 @@ LENGTH()                        Cuenta los caracteres de un texto.  LENGTH('Hola
 "LEFT(texto, n)"                Extrae los primeros n caracteres.   LEFT('Puebla', 3) -> 'Pue'
 "RIGHT(texto, n)"               Extrae los últimos n caracteres.    RIGHT('Puebla', 2) -> 'la'
 "SUBSTRING(t, inicio, largo)"   Extrae una parte específica.        SUBSTRING('DataScience', 5, 7) -> 'Science'
+ROUND()
+CONCAT()
+SUBSTR()
+
 
 Herramientas de Limpieza y Formato
 UPPER() / LOWER()
@@ -393,6 +397,132 @@ SELECT LENGTH(nombre) AS ciudades
 FROM sedes
 WHERE LENGTH(nombre) > 10
 ORDER BY ciudades DESC;
+
+-- Tema 11: INNER JOIN (La intersección pura)
+/*
+Si las tablas fueran conjuntos, el INNER JOIN es la parte donde ambos círculos se enciman. Solo devuelve las filas donde hay una coincidencia exacta en ambas tablas.
+
+Necesitas tres cosas:
+    Tabla A (Izquierda).
+    Tabla B (Derecha).
+    La Condición (ON)
+
+¿Qué pasa si no hay coincidencia?
+esas filas desaparecen del resultado. El INNER JOIN es estricto: "O están los dos, o no está nadie".
+*/
+
+SELECT e.nombre, d.nombre_depto
+FROM empleados AS e
+INNER JOIN departamentos AS d ON e.id_depto = d.id_depto;
+
+-- ejemplo completo de todo en uno.
+SELECT
+    t1.columna,
+    COUNT(*),
+    SUM(t2.valor)
+FROM tabla1 t1
+INNER JOIN tabla2 t2
+    ON t1.id = t2.id
+WHERE condicion
+GROUP BY t1.columna
+HAVING SUM(t2.valor) > 100
+ORDER BY SUM(t2.valor) DESC;
+
+-- Si declaraste el alias en el FROM o en el JOIN, debes usar el alias en el WHERE.
+/*
+Una vez que le asignas un alias a una tabla en una consulta el motor de la base de datos "olvida" el nombre original por el resto de la ejecución de ese query.
+*/
+
+/*
+Posible error en consultas si existen columnas de mismo nombre en ambas tablas.
+
+usuarios
+| id | nombre |
+
+compras
+| id | usuario_id | fecha |
+
+¿Cuál id quieres?
+Eso genera error tipo: Column 'id' is ambiguous
+*/
+
+-- error
+SELECT nombre, fecha, id
+FROM usuarios
+INNER JOIN compras ON usuarios.id = compras.usuario_id;
+
+-- solucion
+SELECT nombre, fecha, usuarios.id --o compras.id
+FROM usuarios
+INNER JOIN compras
+ON usuarios.id = compras.usuario_id;
+
+SELECT p.nombre, c.categoria_nombre
+FROM productos AS p
+INNER JOIN categorias AS c ON p.id_categoria = c.id_categoria
+WHERE p.precio > 100; -- Aquí usamos 'p'
+
+SELECT C.nombre, p.monto
+FROM clientes AS C
+INNER JOIN pedidos AS p
+ON ON C.id = p.id_cliente;
+-- Error: C.id = p.id, casi siempre suele ser llave primaria
+
+SELECT e.nombre, s.ciudad
+FROM empleados AS e
+INNER JOIN sedes AS s
+ON e.id_sede = s.id_sede;
+WHERE e.nombre LIKE 'A%'
+-- El orden estricto es FROM -> JOIN -> WHERE
+
+SELECT 
+    c.nombres, 
+    COUNT(*)
+FROM productos AS p
+INNER JOIN categorias AS c
+    ON p.id_categoria = c.id_categoria
+GROUP BY c.nombres;
+
+SELECT l.titulo, UPPER(a.nombre) 
+FROM autores AS a
+INNER JOIN libros AS l
+ON a.id_autor = l.id_autor
+WHERE LENGTH(l.titulo) > 15;
+
+/*
+¿Se pueden unir más de dos tablas?
+Sí. Un INNER JOIN puede unir 3, 4 o más tablas siempre que exista relación entre ellas.
+El resultado de la unión de la Tabla A y B se convierte en una "tabla virtual" a la que luego le pegas la Tabla C
+
+Nunca unas tablas por columnas que no tengan el mismo tipo de dato. 
+Si id_cliente en una tabla es INT y en la otra es VARCHAR, el motor tendrá que hacer una conversión implícita en cada fila.
+*/
+
+SELECT 
+    u.nombre,
+    c.id_compra,
+    p.producto,
+    p.precio,
+    pa.metodo
+FROM usuarios u
+INNER JOIN compras c
+    ON u.id_usuario = c.id_usuario
+INNER JOIN productos p
+    ON c.id_producto = p.id_producto
+INNER JOIN pagos pa
+    ON c.id_compra = pa.id_compra;
+-- No todas las tablas deben tener la misma columna ni el mismo nombre de llave.
+
+SELECT 
+    u.nombre,
+    COUNT(c.id_compra) AS total_compras,
+    SUM(p.precio) AS gasto_total
+FROM usuarios u
+INNER JOIN compras c
+    ON u.id_usuario = c.id_usuario
+INNER JOIN productos p
+    ON c.id_producto = p.id_producto
+GROUP BY u.nombre;
 
 
 
