@@ -524,6 +524,145 @@ INNER JOIN productos p
     ON c.id_producto = p.id_producto
 GROUP BY u.nombre;
 
+SELECT e.nombre, c.nombre
+FROM estudiantes AS e
+INNER JOIN inscripciones AS i
+    ON e.id_estudiante = i.id_estudiante
+INNER JOIN cursos AS c
+    ON ON i.id_curso = c.id_curso
+
+SELECT c.nombre, SUM(v.precio_venta)
+FROM ventas v
+INNER JOIN productos p
+    ON v.id_producto = p.id_producto
+INNER JOIN categorias c
+    ON p.id_categoria = c.id_categoria
+GROUP BY c.nombre
+HAVING SUM(v.precio_venta) > 10000
+/*
+Imagina que después de los INNER JOIN, el motor de SQL crea una "Gran Tabla Temporal"
+las funciones de agregación funcionan exactamente igual que si fuera una sola tabla.
+*/
+
+SELECT e.nombre, o.ciudad, p.nombre
+FROM empleados e 
+INNER JOIN oficinas o
+    ON e.id_empleado = o.id_empleado
+INNER JOIN paises p
+    ON o.id_pais = p.id_pais -- o.id_oficina = p.id_oficina, significaría que cada oficina es un país
+WHERE p.nombre != "USA"
+
+SELECT l.titulo, a.nombre
+FROM libro l
+INNER JOIN autores a
+    ON l.id_autor = a.id_autor
+WHERE LENGTH(a.nombre) = 5
+
+/*
+El problema de usar funciones de agregacion en where es que mata el rendimiento porque el motor tiene que transformar cada fila antes de comparar, ignorando cualquier índice.
+WHERE UPPER(clientes.estado) = 'ACTIVO'
+
+Soluciones:
+1. Normalización en el INSERT, al insertar el string debe ya estar normalizado en el texto requerido
+2. Case-Insensitive Collation: Configurar la base de datos para que no distinga entre mayusculas ni minusculas
+*/
+
+-- Tema 12: OUTER JOINS (LEFT y RIGHT JOIN)
+/*
+1. LEFT JOIN
+Trae todas las filas de la tabla de la izquierda (la que está en el FROM) y las coincidencias de la derecha.
+Si no hay coincidencia, rellena con NULL.
+
+Uso típico: "Quiero ver todos los clientes, hayan comprado algo o no".
+*/
+
+/*
+2. RIGHT JOIN
+Es exactamente lo mismo pero prioriza la tabla de la derecha.
+
+Casi no se suele usar esta, solo cambias el orden de las tablas en left join para obtener el resultado contrario.
+*/
+
+/*
+3. ¿Por qué son vitales los NULLs aquí?
+Cuando usas un LEFT JOIN, las filas que no tienen pareja aparecerán con valores vacíos (NULL). 
+Esto te permite encontrar faltantes.
+*/
+
+-- Ejemplo: ¿Qué clientes nunca han hecho un pedido?
+SELECT c.nombre
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+WHERE p.id IS NULL; -- Si el ID del pedido es NULL, es que no existe.
+
+/*
+Si haces un LEFT JOIN y luego pones un filtro en el WHERE sobre la tabla de la derecha, ¡puedes convertirlo accidentalmente en un INNER JOIN
+
+Cuándo usar esto:
+Cuando ya hiciste el join y quieres filtrar, pero conservando filas sin match.
+*/
+
+-- LEFT JOIN normal
+SELECT c.nombre, p.monto
+FROM clientes c
+LEFT JOIN pagos p
+ON c.id = p.cliente_id;
+
+-- Error al usar WHERE, Filtra después del join.
+SELECT c.nombre, p.monto
+FROM clientes c
+LEFT JOIN pagos p
+ON c.id = p.cliente_id
+WHERE p.monto > 100;
+
+--Solucion 1 - Poner filtro en ON, cuando se unen
+SELECT c.nombre, p.monto
+FROM clientes c
+LEFT JOIN pagos p
+ON c.id = p.cliente_id
+AND p.monto > 100; -- Solo une pagos mayores a 100, pero conserva todos los clientes.
+
+/*
+Las personas que no cumplen con la condicion no desaparecen, solo queda en null
+Eso mantiene el propósito del LEFT JOIN:
+conservar todas las personas.
+*/
+
+--Solucion 2 - Manejar NULL en WHERE, despues del join
+SELECT c.nombre, p.monto
+FROM clientes c
+LEFT JOIN pagos p
+ON c.id = p.cliente_id
+WHERE p.monto > 100
+   OR p.monto IS NULL;
+
+/*
+se quitaran todas las filas que no cumplan, si permites nulos estos se mostraran, pero seguira habiendo filas que no cumplieron
+No se mostraran
+*/
+
+/*
+Si la condición pertenece a la relación:
+Usa ON
+
+Si la condición pertenece al resultado final:
+Usa WHERE
+*/
+
+SELECT c.nombre
+FROM clientes c
+LEFT JOIN pagos p
+ON c.id = p.cliente_id
+WHERE p.cliente_id IS NULL; --Clientes sin pagos.
+
+
+
+
+
+SELECT c.nombre, p.id_pedido
+FROM clientes c
+LEFT JOIN pedidos p
+ON c.id = p.cliente_id
 
 
 
@@ -534,9 +673,8 @@ GROUP BY u.nombre;
 
 
 
-aprender WHERE MOD(ID, 2) = 0;
 
-LEFT JOIN: Vital para encontrar datos faltantes (muy común en limpieza de datos).
+aprender WHERE MOD(ID, 2) = 0
 FULL OUTER JOIN y CROSS JOIN (casos de uso específicos).
 Lógica Condicional
 Aprender a usar CASE WHEN: Crear categorías o etiquetas sobre la marcha (útil para Feature Engineering).
