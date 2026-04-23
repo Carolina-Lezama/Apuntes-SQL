@@ -655,31 +655,37 @@ LEFT JOIN pagos p
 ON c.id = p.cliente_id
 WHERE p.cliente_id IS NULL; --Clientes sin pagos.
 
-
-
-
-
 SELECT c.nombre, p.id_pedido
 FROM clientes c
 LEFT JOIN pedidos p
 ON c.id = p.cliente_id
 
+SELECT d.nombre, COUNT(e.id_empleado) AS total_empleados -- Usar COUNT(*), incluso los d con 0 contarian porque la fila existe
+FROM departamentos d
+LEFT JOIN empleados e
+ON d.id = e.id_departamento 
+GROUP BY d.nombre
 
+SELECT p.nombre, c.nombre
+FROM productos p
+LEFT JOIN categoria c
+ON p.id_categoria = c.id
 
+SELECT c.id, UPPER(c.nombre), MAX(p.fecha)
+FROM clientes c
+LEFT JOIN pedidos p
+ON c.id = p.id_cliente
+GROUP BY c.id
 
-
-
-
-
-
-
-
-aprender WHERE MOD(ID, 2) = 0
-FULL OUTER JOIN y CROSS JOIN (casos de uso específicos).
-Lógica Condicional
-Aprender a usar CASE WHEN: Crear categorías o etiquetas sobre la marcha (útil para Feature Engineering).
-
-
+-- Tema de Refuerzo 13: El manejo de NULLs (COALESCE)
 /*
+imputación de datos.
+
+La función COALESCE(valor, reemplazo) toma el primer valor que no sea nulo.
 */
 
+SELECT c.id, UPPER(c.nombre), COALESCE(MAX(fecha), 'Sin pedidos')
+FROM clientes c
+LEFT JOIN pedidos p
+ON c.id = p.id_cliente
+GROUP BY c.id

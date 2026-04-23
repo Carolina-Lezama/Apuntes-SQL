@@ -30,41 +30,6 @@ Excel intermedio/avanzado
 
 
 
-Fase 3: SQL Avanzado para Data Science (Nivel Senior)
-Este nivel es el que te diferenciará en las entrevistas técnicas de alto nivel.
-UNION ALL
-Funciones de Ventana (Window Functions) — Indispensable en 2026
-subconsultas
-Aprender a usar OVER y PARTITION BY.
-SELECT *
-FROM
-(
-    SELECT id_cliente, SUM(total) ventas
-    FROM Pedidos
-    GROUP BY id_cliente
-) p
-INNER JOIN
-(
-    SELECT id_cliente, MAX(fecha) ultima_fecha
-    FROM Visitas
-    GROUP BY id_cliente
-) v
-ON p.id_cliente = v.id_cliente;
-RANK(), DENSE_RANK(), ROW_NUMBER() (para eliminar duplicados).
-
-LAG() y LEAD() (Fundamentales para análisis de series temporales, como lo que hiciste con los taxis).
-
-Subconsultas y Modularización
-
-Subconsultas en el WHERE y en el FROM.
-
-CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
-
-Manipulación de Tipos de Datos
-
-Funciones de Fecha: DATE_TRUNC(), EXTRACT(), DATEDIFF().
-
-Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
 
 Fase 4: Optimización y MLOps (Nivel Experto)
 Pensando en tu interés por despliegue y eficiencia.
