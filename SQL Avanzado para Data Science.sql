@@ -94,19 +94,25 @@ WHERE salario >
 
 
 
+-- ejercicios tema actual
+SELECT nombre, precio
+FROM productos
+WHERE precio < (
+    SELECT AVG(precio)
+    FROM productos
+)
 
 
 
 
 
 
-
-
+-- futuros temas
 explica mejor esto:
 El "Single Row" Error: Si tu subconsulta en el WHERE usa un operador como =, >, < (comparación simple), la subconsulta DEBE devolver un solo valor. Si la subconsulta devuelve 10 filas, el query principal se romperá con un error: "Subquery returned more than 1 value".
 
 Solución: Si esperas varios valores, usa el operador IN.
-
+right y left para obtener caracteres
 
 
 
