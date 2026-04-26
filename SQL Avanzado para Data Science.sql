@@ -1,4 +1,31 @@
--- Tema 1: Subconsultas (Queries dentro de Queries)
+-- Tema 1: CAST, CONVERTIR TIPO DE DATO
+/*
+Cuando usas funciones como REPLACE, el resultado suele ser una cadena de texto (String).
+si quiere usar funciones de agregacion primero debe volver a ser INT.
+
+Enteros:	INT, INTEGER, SIGNED, UNSIGNED
+Decimales:	DECIMAL(p,s), FLOAT, REAL
+Texto:	CHAR, VARCHAR, TEXT
+Fechas:	DATE, DATETIME, TIME
+*/
+
+-- Convertir el texto '2500' en un entero
+SELECT CAST('2500' AS UNSIGNED); -- En MySQL
+SELECT CAST('2500' AS INT);      -- En SQL Server/Postgres
+
+-- Convertir Números a Texto
+SELECT 'El ID del usuario es: ' + CAST(ID AS VARCHAR)
+FROM Usuarios;
+
+-- Quitar decimales (Redondear truncando)
+SELECT CAST(150.99 AS SIGNED); 
+-- Resultado: 150
+
+SELECT AVG(CAST(REPLACE(Salary, '0', '') AS DECIMAL))
+FROM EMPLOYEES;
+
+
+-- Tema 2: Subconsultas (Queries dentro de Queries)
 /*
 Utiles para realizar un filtro basado en un cálculo que no conoces de antemano. 
 Es como preguntarle a la base de datos: "Dame todos los productos cuyo precio sea mayor al promedio" (Primero necesitas saber el promedio, ¿cierto?).
@@ -110,12 +137,13 @@ WHERE precio < (
 -- futuros temas
 explica mejor esto:
 El "Single Row" Error: Si tu subconsulta en el WHERE usa un operador como =, >, < (comparación simple), la subconsulta DEBE devolver un solo valor. Si la subconsulta devuelve 10 filas, el query principal se romperá con un error: "Subquery returned more than 1 value".
-
+TRY_CAST
 Solución: Si esperas varios valores, usa el operador IN.
 right y left para obtener caracteres
 
-
-
+uso de FLOOR() Busca el entero menor más cercano.
+CEIL() el siguiente entero superior.
+ROUND() Redondea al más cercano (hacia arriba si es .5 o más).
 aprender WHERE MOD(ID, 2) = 0
 FULL OUTER JOIN y CROSS JOIN (casos de uso específicos).
 Lógica Condicional
