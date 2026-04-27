@@ -108,6 +108,49 @@ WHERE salario >
    WHERE e2.id_departamento = e1.id_departamento
 );
 
+SELECT nombre, precio
+FROM productos
+WHERE precio < (
+    SELECT AVG(precio)
+    FROM productos
+);
+
+SELECT c.id, c.nombre
+FROM clientes c
+WHERE c.id IN(
+    SELECT p.id_cliente
+    FROM pedidos p
+    WHERE categoria = 'Electrónica'
+)
+
+SELECT *
+FROM pedidos
+WHERE fecha = (
+    SELECT MAX(fecha)
+    FROM pedidos
+)
+LIMIT 1; -- dependiendo el resultado
+
+SELECT c.nombre, COALESCE(p.monto, 0) AS monto
+FROM clientes c
+LEFT JOIN pedidos p
+ON c.id = p.id_cliente
+
+SELECT d.id, d.nombre, COUNT(e.id) AS cantidad_empleados
+FROM departamentos d
+INNER JOIN empleados e
+ON d.id = e.id_departamento
+GROUP BY d.id, d.nombre
+HAVING COUNT(e.id) >
+(
+    SELECT AVG(cantidad)
+    FROM (    
+        SELECT COUNT(*) AS cantidad
+        FROM empleados
+        GROUP BY id_departamento) primera
+);
+
+-- Tema 3: CASE WHEN (El motor de Feature Engineering)
 
 
 
@@ -122,12 +165,9 @@ WHERE salario >
 
 
 -- ejercicios tema actual
-SELECT nombre, precio
-FROM productos
-WHERE precio < (
-    SELECT AVG(precio)
-    FROM productos
-)
+
+
+
 
 
 
@@ -147,9 +187,7 @@ ROUND() Redondea al más cercano (hacia arriba si es .5 o más).
 aprender WHERE MOD(ID, 2) = 0
 FULL OUTER JOIN y CROSS JOIN (casos de uso específicos).
 Lógica Condicional
-Aprender a usar CASE WHEN: Crear categorías o etiquetas sobre la marcha (útil para Feature Engineering).
 COUNT(*), COUNT(1), COUNT(columna),
-
 /*
 */
 Explícame cómo hacer más simple con HAVING, JOIN, o ventana

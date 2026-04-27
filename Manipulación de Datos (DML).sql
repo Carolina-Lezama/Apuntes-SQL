@@ -683,7 +683,6 @@ imputación de datos.
 
 La función COALESCE(valor, reemplazo) toma el primer valor que no sea nulo.
 */
-
 SELECT c.id, UPPER(c.nombre), COALESCE(MAX(fecha), 'Sin pedidos')
 FROM clientes c
 LEFT JOIN pedidos p

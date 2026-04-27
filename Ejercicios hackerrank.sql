@@ -175,3 +175,44 @@ Write a query calculating the amount of error (i.e.: ACTUAL - MISCALCULATED aver
 */
 SELECT CEIL(AVG(Salary) - AVG(CAST(REPLACE(Salary, '0', '') AS DECIMAL)))
 FROM EMPLOYEES 
+
+/*
+Given the CITY and COUNTRY tables, query the names of all cities where the CONTINENT is 'Africa'.
+Note: CITY.CountryCode and COUNTRY.Code are matching key columns.
+*/
+SELECT ci.NAME
+FROM city ci
+INNER JOIN country co
+ON ci.COUNTRYCODE = co.CODE
+WHERE co.CONTINENT = 'Africa'
+
+
+/*
+Given the CITY and COUNTRY tables, query the names of all the continents (COUNTRY.Continent) and their respective average city populations (CITY.Population) rounded down to the nearest integer.
+Note: CITY.CountryCode and COUNTRY.Code are matching key columns.
+*/
+SELECT co.CONTINENT, FLOOR(AVG(ci.POPULATION))
+FROM city ci
+INNER JOIN country co
+ON ci.COUNTRYCODE = co.CODE
+GROUP BY co.CONTINENT
+
+/*
+Write a query identifying the type of each record in the TRIANGLES table using its three side lengths. Output one of the following statements for each record in the table:
+Equilateral: It's a triangle with  sides of equal length.
+Isosceles: It's a triangle with  sides of equal length.
+Scalene: It's a triangle with  sides of differing lengths.
+Not A Triangle: The given values of A, B, and C don't form a triangle.
+*/
+SELECT
+    CASE
+        WHEN A + B <= C OR A + C <= B OR B + C <= A
+            THEN 'Not A Triangle'
+        WHEN A = B AND B = C
+            THEN 'Equilateral'
+        WHEN A = B OR B = C OR A = C
+            THEN 'Isosceles'
+        ELSE 'Scalene'
+    END AS TriangleType
+FROM TRIANGLES;
+
