@@ -151,14 +151,118 @@ HAVING COUNT(e.id) >
 );
 
 -- Tema 3: CASE WHEN (El motor de Feature Engineering)
+/*
+es el equivalente al if-elif-else de cualquier lenguaje de programación, pero adaptado a bases de datos.
 
+El motor evalúa de arriba hacia abajo. 
+En el momento en que una condición se cumple (es TRUE), asigna el valor y ignora el resto de los WHEN para esa fila. 
+Pon siempre las condiciones más restrictivas primero.
 
+Si no escribes la cláusula ELSE y una fila no cumple ninguno de tus WHEN, la base de datos pondrá un NULL automáticamente
+*/
+SELECT 
+    nombre,
+    edad,
+    CASE 
+        WHEN edad < 18 THEN 'Menor de Edad'
+        WHEN edad BETWEEN 18 AND 60 THEN 'Adulto'
+        ELSE 'Tercera Edad'
+    END AS categoria_edad
+FROM usuarios;
 
+-- Feature Engineering: Variables Dummy (One-Hot Encoding manual)
+SELECT 
+    id_cliente,
+    pais,
+    CASE WHEN pais = 'Mexico' THEN 1 ELSE 0 END AS is_mexico,
+    CASE WHEN pais = 'Colombia' THEN 1 ELSE 0 END AS is_colombia
+FROM clientes;
 
+-- CASE dentro de Funciones de Agregación
+SELECT 
+    departamento,
+    SUM(CASE WHEN genero = 'F' THEN 1 ELSE 0 END) AS total_mujeres,
+    SUM(CASE WHEN genero = 'M' THEN 1 ELSE 0 END) AS total_hombres
+FROM empleados
+GROUP BY departamento;
 
+SELECT nombre, precio,
+    CASE 
+        WHEN precio < 500 THEN 'Económico'
+        WHEN precio BETWEEN 500 AND 1500 THEN 'Estándar'
+        ELSE 'Premium'
+    END AS rango_precio
+FROM productos
 
+SELECT
+    CASE
+        WHEN estatus IN ('Activo', 'A') THEN 'ACTIVO'
+        ELSE 'INACTIVO'
+    END AS estatus_limpio
+FROM clientes
 
+SELECT
+    SUM(CASE WHEN metodo_pago = 'Tarjeta' THEN 1 ELSE 0 END) AS total_tarjeta,
+    SUM(CASE WHEN metodo_pago = 'Efectivo' THEN 1 ELSE 0 END) AS total_efectivo
+FROM pedidos
 
+SELECT e.id, e.nombre,
+    CASE
+        WHEN SUM(v.monto) IS NULL THEN 'Sin Ventas'
+        WHEN SUM(v.monto) < 5000 THEN 'Junior'
+        WHEN SUM(v.monto) >= 5000 THEN 'Senior'
+        ELSE 'Sin Ventas'
+    END AS nivel_ventas
+FROM empleados e
+LEFT JOIN ventas v
+ON e.id = v.id_empleado
+GROUP BY e.id, e.nombre
+
+-- Tema 4: Funciones Matemáticas de Precisión (ROUND, CEIL, FLOOR)
+-- Aplica ROUND(), CEIL() o FLOOR() únicamente en la cláusula SELECT final.
+
+-- 1. ROUND(número, decimales): El Redondeo Estándar
+/*
+Redondea al más cercano (hacia arriba si es .5 o más)
+Regla: Si omites el segundo parámetro, redondea a enteros (cero decimales).
+*/
+
+ROUND(149.49) -- 149
+ROUND(149.50) -- 150
+ROUND(149.456, 2) -- 149.46
+
+-- 2. CEIL(número) / CEILING(): El Techo
+/*
+Fuerza el número al entero superior más cercano, sin importar qué tan pequeño sea el decimal.
+*/
+CEIL(2.1) -- 3
+CEIL(2.9) -- 3
+
+SELECT CEIL(AVG(Salary) - AVG(CAST(REPLACE(Salary, '0', '') AS DECIMAL)))
+FROM EMPLOYEES 
+
+-- 3. FLOOR(número): El Piso
+/*
+Fuerza el número al entero inferior más cercano, truncando (cortando) todos los decimales.
+*/
+FLOOR(15.8) -- 15
+FLOOR(15.1) -- 15
+
+SELECT FLOOR(AVG(POPULATION))
+FROM CITY;
+
+SELECT nombre, ROUND(precio * 1.16, 2) AS precio_final
+FROM productos;
+
+SELECT id_envio, CEIL(unidades_totales / 12.0)
+FROM envios;
+
+SELECT nombre, FLOOR(meses_antiguedad / 12.0)
+FROM empleados;
+
+SELECT ROUND(45.5), CEIL(45.5), FLOOR(45.5);
+
+-- Tema 5: El Misterio de los Conteos (COUNT(*), COUNT(1), COUNT(columna))
 
 
 
@@ -169,27 +273,15 @@ HAVING COUNT(e.id) >
 
 
 
-
-
-
-
-
 -- futuros temas
 explica mejor esto:
 El "Single Row" Error: Si tu subconsulta en el WHERE usa un operador como =, >, < (comparación simple), la subconsulta DEBE devolver un solo valor. Si la subconsulta devuelve 10 filas, el query principal se romperá con un error: "Subquery returned more than 1 value".
 TRY_CAST
 Solución: Si esperas varios valores, usa el operador IN.
 right y left para obtener caracteres
-
-uso de FLOOR() Busca el entero menor más cercano.
-CEIL() el siguiente entero superior.
-ROUND() Redondea al más cercano (hacia arriba si es .5 o más).
 aprender WHERE MOD(ID, 2) = 0
 FULL OUTER JOIN y CROSS JOIN (casos de uso específicos).
-Lógica Condicional
-COUNT(*), COUNT(1), COUNT(columna),
-/*
-*/
+
 Explícame cómo hacer más simple con HAVING, JOIN, o ventana
 
 Este nivel es el que te diferenciará en las entrevistas técnicas de alto nivel.
