@@ -263,19 +263,156 @@ FROM empleados;
 SELECT ROUND(45.5), CEIL(45.5), FLOOR(45.5);
 
 -- Tema 5: El Misterio de los Conteos (COUNT(*), COUNT(1), COUNT(columna))
+/*
+1. COUNT(*): El Censo Total
+Cuenta todas las filas físicas de la tabla, sin importar si están llenas de datos o si todas sus columnas son NULL. 
+Es el recuento absoluto de registros.
+*/
+SELECT COUNT(*) FROM clientes;
 
+/*
+2. COUNT(1): El Mito del Rendimiento
+Hace exactamente lo mismo que COUNT(*).
+Transforma COUNT(1) en COUNT(*) internamente. Tienen exactamente el mismo rendimiento.
+Se recomienda usar siempre COUNT(*) porque es el estándar
+*/
+SELECT COUNT(1) FROM clientes;
+
+/*
+3. COUNT(columna): El Detector de Presencia
+Esto no cuenta filas, cuenta cuántos valores NO NULOS hay en esa columna específica.
+Si hay nulos no se contaran en el regreso
+*/
+SELECT COUNT(email) FROM clientes;
+
+/*
+4. COUNT(DISTINCT columna)
+Cuenta los valores únicos y no nulos.
+*/
+SELECT COUNT(DISTINCT id_cliente) FROM clientes;
+
+SELECT COUNT(*) AS total_general, COUNT(id_repartidor) AS asignados FROM pedidos;
+
+SELECT COUNT(DISTINCT direccion_ip) FROM accesos_web;
+
+-- Tema 6: Operadores para Subconsultas de Múltiples Filas (IN, ANY, ALL)
+/*
+"Subquery returned more than 1 value" ocurre por una violación de cardinalidad.
+Los operadores relacionales básicos están diseñados para comparar un valor contra otro valor único.
+
+funcionan para comparar un valor contra lo que podríamos llamar una "lista", un "conjunto" o una "colección" de resultados.
+Están diseñados para lidiar con múltiples valores, sí. Sin embargo, no es obligatorio que la lista tenga más de uno.
+los usas cuando esperas o existe la posibilidad de que haya más de un valor a comparar.
+*/
+
+-- Ejemplo incorrecto: 
+WHERE precio = (10, 20, 30)
+-- el motor se confunde y aborta la operación porque no sabe contra cuál de los tres números quieres hacer la comparación exacta.
+
+/*
+IN: Comprueba si tu valor es idéntico a cualquiera de los elementos de la lista.
+ANY o SOME: Compara un valor usando un operador (>, <, =, etc.) contra la lista. Da luz verde si la condición se cumple con al menos un elemento del conjunto.
+ALL: usa un operador matemático, pero es mucho más exigente. Solo da luz verde si la condición se cumple para absolutamente todos los elementos de la lista.
+*/
+
+-- 1. El operador IN; Reemplaza al signo =
+SELECT nombre, email 
+FROM clientes 
+WHERE id_cliente IN (
+    SELECT DISTINCT id_cliente 
+    FROM pedidos 
+    WHERE fecha >= '2026-04-01'
+);
+
+SELECT nombre 
+FROM tienda 
+WHERE departamento IN ('Ventas', 'Marketing', 'Soporte');
+
+
+-- 2. El operador ANY (o SOME); La condición debe cumplirse para al menos uno de los valores de la lista
+--      = ANY(lista): Es exactamente lo mismo que usar IN.
+
+SELECT nombre, precio 
+FROM productos 
+WHERE precio > ANY (
+    SELECT precio 
+    FROM productos 
+    WHERE categoria = 'Basicos'
+);
+
+SELECT nombre, precio 
+FROM productos 
+WHERE salario > ANY (SELECT salario FROM practicantes);
+
+-- 3. El operador ALL; La condición debe cumplirse para todos y cada uno de los valores de la lista
+SELECT nombre, salario 
+FROM empleados 
+WHERE salario > ALL (
+    SELECT salario 
+    FROM empleados 
+    WHERE departamento = 'Ventas'
+);
+
+SELECT nombre, precio 
+FROM productos 
+WHERE salario > ALL (SELECT salario FROM practicantes);
+
+/*
+Si usas NOT IN y la subconsulta devuelve una lista que contiene al menos un valor NULL, la consulta principal devolverá cero filas, sin importar si hay datos válidos.
+*/
+
+-- FORMA CORRECTA Y SEGURA
+SELECT nombre FROM empleados 
+WHERE id_departamento NOT IN (
+    SELECT id_departamento 
+    FROM departamentos 
+    WHERE id_departamento IS NOT NULL -- ¡El salvavidas!
+);
 
 
 
 
 -- ejercicios tema actual
 
+SELECT nombre, apellido
+    FROM usuarios
+    WHERE id_pais IN (
+        SELECT id_pais 
+        FROM paises 
+        WHERE continente = 'Europa'
+    );
+
+SELECT titulo
+FROM libros
+WHERE id_autor IN (
+    SELECT id_autor
+    FROM autores
+    WHERE nacionalidad = 'Argentina'
+);
+
+SELECT marca, precio 
+FROM vehiculos 
+WHERE precio < ALL (
+    SELECT precio 
+    FROM vehiculos
+    WHERE marca = 'Ferrari'
+);
+
+SELECT nombre 
+FROM sucursales 
+WHERE  NOT IN (
+    SELECT  
+    FROM  
+    WHERE  IS NOT NULL 
+);
+
+s `` que **no** tienen ningún empleado asignado en este momento. Usa `NOT IN` con una subconsulta a la tabla `empleados` asegurándote de aplicar la regla de prevención de `NULL`.
+5.  **Análisis Integrado:** De la tabla `facturas`, selecciona el `id_factura` y usa un `CASE WHEN` para clasificarla: si el `total` es mayor al promedio global de facturas, etiquétala como 'Alta'; de lo contrario, 'Normal'. (Pista: La subconsulta aquí sí devuelve un solo valor, úsala dentro del `CASE`).
 
 
 
 -- futuros temas
-explica mejor esto:
-El "Single Row" Error: Si tu subconsulta en el WHERE usa un operador como =, >, < (comparación simple), la subconsulta DEBE devolver un solo valor. Si la subconsulta devuelve 10 filas, el query principal se romperá con un error: "Subquery returned more than 1 value".
+
 TRY_CAST
 Solución: Si esperas varios valores, usa el operador IN.
 right y left para obtener caracteres
