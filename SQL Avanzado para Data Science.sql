@@ -366,13 +366,14 @@ SELECT nombre FROM empleados
 WHERE id_departamento NOT IN (
     SELECT id_departamento 
     FROM departamentos 
-    WHERE id_departamento IS NOT NULL -- ¡El salvavidas!
+    WHERE id_departamento IS NOT NULL 
 );
 
-
-
-
--- ejercicios tema actual
+SELECT s.id_sucursal, COUNT(e.id_empleado) AS cantidad_empleados
+FROM sucursales s
+LEFT JOIN empleados e ON s.id_sucursal = e.id_sucursal
+GROUP BY s.id_sucursal
+HAVING COUNT(e.id_empleado) = 0;
 
 SELECT nombre, apellido
     FROM usuarios
@@ -398,16 +399,114 @@ WHERE precio < ALL (
     WHERE marca = 'Ferrari'
 );
 
-SELECT nombre 
-FROM sucursales 
-WHERE  NOT IN (
-    SELECT  
-    FROM  
-    WHERE  IS NOT NULL 
+SELECT id_sucursal, nombre_sucursal
+FROM sucursales
+WHERE id_sucursal NOT IN (
+    SELECT id_sucursal 
+    FROM empleados
+    WHERE id_sucursal IS NOT NULL -- si hay nulos devolverá cero filas, no olvidar esta parte
 );
 
-s `` que **no** tienen ningún empleado asignado en este momento. Usa `NOT IN` con una subconsulta a la tabla `empleados` asegurándote de aplicar la regla de prevención de `NULL`.
-5.  **Análisis Integrado:** De la tabla `facturas`, selecciona el `id_factura` y usa un `CASE WHEN` para clasificarla: si el `total` es mayor al promedio global de facturas, etiquétala como 'Alta'; de lo contrario, 'Normal'. (Pista: La subconsulta aquí sí devuelve un solo valor, úsala dentro del `CASE`).
+SELECT id_factura,
+    CASE 
+        WHEN total > 
+        (
+            SELECT AVG(total)
+            FROM  facturas
+        ) 
+        THEN 'Alta'
+        ELSE 'Normal'
+    END AS clasificacion
+FROM facturas
+
+-- Tema 7: UNION ALL (y UNION) - Apilando Datos
+/*
+con los JOINs, hemos unido tablas horizontalmente (agregando columnas a nuestras filas
+
+JOIN: Pegas la Tabla B al lado de la Tabla A.
+UNION: Pones la Tabla B debajo de la Tabla A.
+
+Para apilar dos queries, deben cumplir dos reglas estrictas:
+-- Misma cantidad de columnas
+-- Mismos tipos de datos en orden
+
+UNION ALL: Apila todo. Si hay filas duplicadas entre el query A y el query B, mantiene los duplicados.
+UNION: Apila todo y luego hace un escaneo completo para eliminar duplicados.
+*/
+
+-- texto fijo en el SELECT para identificar el origen de cada fila
+SELECT id_cliente, monto, 'Venta Física' AS origen_venta
+FROM ventas_tiendas
+UNION ALL
+SELECT id_cliente, monto, 'Venta Web' AS origen_venta
+FROM ventas_ecommerce;
+
+/*
+Usa siempre UNION ALL por defecto.
+Solo usa UNION si explícitamente la regla de negocio te exige limpiar duplicados exactos entre ambas tablas.
+
+si quieres limpiar los nulos de ambas tablas antes de apilarlas, debes poner el WHERE en cada SELECT
+Si quieres quitar los duplicados de tu lista final
+*/
+
+SELECT nombre, origen
+FROM (
+    -- Aquí adentro está tu bloque combinado
+    SELECT nombre, 'Norte' AS origen 
+    FROM proveedores_norte
+    UNION ALL
+    SELECT nombre, 'Sur' AS origen 
+    FROM proveedores_sur
+) AS todos_los_proveedores  -- ¡El alias es obligatorio!
+WHERE nombre LIKE 'A%';       -- Ahora puedes filtrar la tabla combinada
+
+-- primero "empaquetas" tu UNION ALL y le pones un nombre arriba, y luego lo usas abajo.
+-- 1. Empaquetamos la unión
+WITH todos_los_proveedores AS (
+    SELECT nombre, 'Norte' AS origen 
+    FROM proveedores_norte
+    UNION ALL
+    SELECT nombre, 'Sur' AS origen 
+    FROM proveedores_sur
+)
+-- 2. Usamos el paquete como una tabla normal
+SELECT nombre, origen
+FROM todos_los_proveedores
+WHERE nombre LIKE 'A%';
+
+SELECT id, nombre, 'Norte' AS origen 
+FROM proveedores_norte
+WHERE nombre IS NOT NULL
+UNION ALL
+SELECT id, nombre, 'Sur' AS origen 
+FROM proveedores_sur
+WHERE nombre IS NOT NULL;
+
+SELECT nombre, email, 'Activo' AS estatus_laboral 
+FROM empleados_activos
+UNION ALL
+SELECT nombre, email , 'Inactivo' AS estatus_laboral 
+FROM empleados_inactivos
+
+WITH personas AS (
+    SELECT nombre
+    FROM usuarios
+    UNION ALL
+    SELECT nombre
+    FROM empleados
+)
+SELECT nombre, COUNT(nombre) AS cantidad_personas
+FROM personas
+GROUP BY nombre
+ORDER BY cantidad_personas DESC; 
+
+-- Tema 8: Los JOINs Especiales (FULL OUTER y CROSS)
+/*
+
+*/
+
+
+-- ejercicios tema actual
 
 
 
@@ -415,14 +514,12 @@ s `` que **no** tienen ningún empleado asignado en este momento. Usa `NOT IN` c
 
 TRY_CAST
 Solución: Si esperas varios valores, usa el operador IN.
-right y left para obtener caracteres
+
 aprender WHERE MOD(ID, 2) = 0
-FULL OUTER JOIN y CROSS JOIN (casos de uso específicos).
 
 Explícame cómo hacer más simple con HAVING, JOIN, o ventana
+2. La forma "Pro": CTE (Cláusula WITH)
 
-Este nivel es el que te diferenciará en las entrevistas técnicas de alto nivel.
-UNION ALL
 Funciones de Ventana (Window Functions) — Indispensable en 2026
 subconsultas
 Aprender a usar OVER y PARTITION BY.
