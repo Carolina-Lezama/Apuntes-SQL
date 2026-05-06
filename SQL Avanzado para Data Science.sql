@@ -502,53 +502,262 @@ ORDER BY cantidad_personas DESC;
 
 -- Tema 8: Los JOINs Especiales (FULL OUTER y CROSS)
 /*
-
+FULL OUTER JOIN
+Es la combinación de un LEFT JOIN y un RIGHT JOIN. Trae todas las filas de ambas tablas.
+    Si hay coincidencia, las une.
+    Si hay una fila en la izquierda sin pareja, rellena la derecha con NULL.
+    Si hay una fila en la derecha sin pareja, rellena la izquierda con NULL.
 */
 
+-- no disppnible en mysql
+SELECT rh.nombre, n.monto_pago
+FROM empleados_rh rh
+FULL OUTER JOIN pagos_nomina n 
+    ON rh.id_empleado = n.id_empleado;
 
--- ejercicios tema actual
+-- forma correcta en sql
+-- PASO 1: LEFT JOIN
+SELECT e.nombre AS empleado, d.nombre_departamento AS departamento
+FROM empleados e
+LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
+UNION --bune y elimina duplicados
+-- PASO 2: RIGHT JOIN
+SELECT e.nombre AS empleado, d.nombre_departamento AS departamento
+FROM empleados e
+RIGHT JOIN departamentos d ON e.id_departamento = d.id_departamento;
 
+/*
+CROSS JOIN
+Este es el único JOIN que no lleva la cláusula ON. 
+Lo que hace es tomar cada fila de la Tabla A y combinarla con todas y cada una de las filas de la Tabla B.
 
+Solo usa CROSS JOIN con tablas de catálogos muy pequeñas (dimensiones) o cuando estés filtrando fuertemente en el WHERE
 
--- futuros temas
+Tienes una tabla colores (Rojo, Azul, Verde) y una tabla tallas (S, M, L). 
+Quieres generar el catálogo base para insertar todas las variaciones posibles
+*/
 
-TRY_CAST
-Solución: Si esperas varios valores, usa el operador IN.
+SELECT c.color, t.talla
+FROM colores c
+CROSS JOIN tallas t;
+-- Devuelve: Rojo-S, Rojo-M, Rojo-L, Azul-S... etc.
 
-aprender WHERE MOD(ID, 2) = 0
-
-Explícame cómo hacer más simple con HAVING, JOIN, o ventana
-2. La forma "Pro": CTE (Cláusula WITH)
-
-Funciones de Ventana (Window Functions) — Indispensable en 2026
-subconsultas
-Aprender a usar OVER y PARTITION BY.
+-- Usando un CTE para poder usar el alias
+WITH calculo_productos AS (
+    SELECT 
+        id_producto, 
+        ((precio * 1.16) - costo + tarifa_envio) AS margen_ganancia -- Un cálculo largo
+    FROM productos
+)
 SELECT *
+FROM calculo_productos
+WHERE margen_ganancia > 500; -- ¡Aquí el alias SÍ funciona!
+
+SELECT m.mes, s.ubicacion
+FROM meses m
+CROSS JOIN sucursales s;
+
+SELECT e.nombre, c.codigo_credencial
+FROM estudiantes e
+FULL OUTER JOIN credenciales_biblioteca c
+    ON e.id_estudiante = c.id_estudiante;
+
+-- ESTRUCTURA 
+SELECT
 FROM
-(
-    SELECT id_cliente, SUM(total) ventas
-    FROM Pedidos
-    GROUP BY id_cliente
-) p
-INNER JOIN
-(
-    SELECT id_cliente, MAX(fecha) ultima_fecha
-    FROM Visitas
-    GROUP BY id_cliente
-) v
-ON p.id_cliente = v.id_cliente;
-RANK(), DENSE_RANK(), ROW_NUMBER() (para eliminar duplicados).
-JOINS
-LAG() y LEAD() (Fundamentales para análisis de series temporales, como lo que hiciste con los taxis).
-Función ventana.
-Subconsultas y Modularización
+LEFT JOIN
+    ON
+UNION -- O UNION ALL
+SELECT
+FROM
+LEFT JOIN -- O RIGHT JOIN, DEPENDE SI LO ACEPTA O SOLO SE INVIERTE EL ORDEN DE LAS TABLAS
+    ON
 
-Subconsultas en el WHERE y en el FROM.
+SELECT p.nombre, d.nivel_descuento, p.precio * (1 - d.nivel_descuento) AS precio_con_descuento
+FROM productos p
+CROSS JOIN descuentos d -- quiero pensar que son decimales .10, .20...
+WHERE p.precio * (1 - d.nivel_descuento) > 500
+ORDER BY  precio_con_descuento DESC;
 
-CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
+-- Tema 9: Usar HAVING sin GROUP BY
+/*
+Cuando usas un HAVING sin escribir un GROUP BY, el motor de SQL asume que toda tu tabla (o el resultado de tu consulta) es un solo y gigantesco grupo.
+usarlo sin GROUP BY solo tiene sentido si vas a evaluar una función de agregación (SUM, COUNT, AVG, etc.) que aplique a absolutamente todos los registros.
+comprime toda tu tabla para tratarla como un único y gigantesco grupo.
 
-Manipulación de Tipos de Datos
+Devuelve 1 fila: Si la condición de tu HAVING es verdadera
+Devuelve 0 filas: Si la condición es falsa
+*/
 
-Funciones de Fecha: DATE_TRUNC(), EXTRACT(), DATEDIFF().
+SELECT SUM(salario) AS nomina_total
+FROM empleados
+HAVING SUM(salario) > 1000000;
 
-Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
+-- Tema 11: INNER JOIN (La intersección pura)
+/*
+Si las tablas fueran conjuntos, el INNER JOIN es la parte donde ambos círculos se enciman. Solo devuelve las filas donde hay una coincidencia exacta en ambas tablas.
+
+Necesitas tres cosas:
+    Tabla A (Izquierda).
+    Tabla B (Derecha).
+    La Condición (ON)
+
+¿Qué pasa si no hay coincidencia?
+esas filas desaparecen del resultado. El INNER JOIN es estricto: "O están los dos, o no está nadie".
+*/
+
+SELECT e.nombre, d.nombre_depto
+FROM empleados AS e
+INNER JOIN departamentos AS d ON e.id_depto = d.id_depto;
+
+-- ejemplo completo de todo en uno.
+SELECT
+    t1.columna,
+    COUNT(*),
+    SUM(t2.valor)
+FROM tabla1 t1
+INNER JOIN tabla2 t2
+    ON t1.id = t2.id
+WHERE condicion
+GROUP BY t1.columna
+HAVING SUM(t2.valor) > 100
+ORDER BY SUM(t2.valor) DESC;
+
+-- Si declaraste el alias en el FROM o en el JOIN, debes usar el alias en el WHERE.
+/*
+Una vez que le asignas un alias a una tabla en una consulta el motor de la base de datos "olvida" el nombre original por el resto de la ejecución de ese query.
+*/
+
+/*
+Posible error en consultas si existen columnas de mismo nombre en ambas tablas.
+
+usuarios
+| id | nombre |
+
+compras
+| id | usuario_id | fecha |
+
+¿Cuál id quieres?
+Eso genera error tipo: Column 'id' is ambiguous
+*/
+
+-- error
+SELECT nombre, fecha, id
+FROM usuarios
+INNER JOIN compras ON usuarios.id = compras.usuario_id;
+
+-- solucion
+SELECT nombre, fecha, usuarios.id --o compras.id
+FROM usuarios
+INNER JOIN compras
+ON usuarios.id = compras.usuario_id;
+
+SELECT p.nombre, c.categoria_nombre
+FROM productos AS p
+INNER JOIN categorias AS c ON p.id_categoria = c.id_categoria
+WHERE p.precio > 100; -- Aquí usamos 'p'
+
+SELECT C.nombre, p.monto
+FROM clientes AS C
+INNER JOIN pedidos AS p
+ON ON C.id = p.id_cliente;
+-- Error: C.id = p.id, casi siempre suele ser llave primaria
+
+SELECT e.nombre, s.ciudad
+FROM empleados AS e
+INNER JOIN sedes AS s
+ON e.id_sede = s.id_sede;
+WHERE e.nombre LIKE 'A%'
+-- El orden estricto es FROM -> JOIN -> WHERE
+
+SELECT 
+    c.nombres, 
+    COUNT(*)
+FROM productos AS p
+INNER JOIN categorias AS c
+    ON p.id_categoria = c.id_categoria
+GROUP BY c.nombres;
+
+SELECT l.titulo, UPPER(a.nombre) 
+FROM autores AS a
+INNER JOIN libros AS l
+ON a.id_autor = l.id_autor
+WHERE LENGTH(l.titulo) > 15;
+
+/*
+¿Se pueden unir más de dos tablas?
+Sí. Un INNER JOIN puede unir 3, 4 o más tablas siempre que exista relación entre ellas.
+El resultado de la unión de la Tabla A y B se convierte en una "tabla virtual" a la que luego le pegas la Tabla C
+
+Nunca unas tablas por columnas que no tengan el mismo tipo de dato. 
+Si id_cliente en una tabla es INT y en la otra es VARCHAR, el motor tendrá que hacer una conversión implícita en cada fila.
+*/
+
+SELECT 
+    u.nombre,
+    c.id_compra,
+    p.producto,
+    p.precio,
+    pa.metodo
+FROM usuarios u
+INNER JOIN compras c
+    ON u.id_usuario = c.id_usuario
+INNER JOIN productos p
+    ON c.id_producto = p.id_producto
+INNER JOIN pagos pa
+    ON c.id_compra = pa.id_compra;
+-- No todas las tablas deben tener la misma columna ni el mismo nombre de llave.
+
+SELECT 
+    u.nombre,
+    COUNT(c.id_compra) AS total_compras,
+    SUM(p.precio) AS gasto_total
+FROM usuarios u
+INNER JOIN compras c
+    ON u.id_usuario = c.id_usuario
+INNER JOIN productos p
+    ON c.id_producto = p.id_producto
+GROUP BY u.nombre;
+
+SELECT e.nombre, c.nombre
+FROM estudiantes AS e
+INNER JOIN inscripciones AS i
+    ON e.id_estudiante = i.id_estudiante
+INNER JOIN cursos AS c
+    ON ON i.id_curso = c.id_curso
+
+SELECT c.nombre, SUM(v.precio_venta)
+FROM ventas v
+INNER JOIN productos p
+    ON v.id_producto = p.id_producto
+INNER JOIN categorias c
+    ON p.id_categoria = c.id_categoria
+GROUP BY c.nombre
+HAVING SUM(v.precio_venta) > 10000
+/*
+Imagina que después de los INNER JOIN, el motor de SQL crea una "Gran Tabla Temporal"
+las funciones de agregación funcionan exactamente igual que si fuera una sola tabla.
+*/
+
+SELECT e.nombre, o.ciudad, p.nombre
+FROM empleados e 
+INNER JOIN oficinas o
+    ON e.id_empleado = o.id_empleado
+INNER JOIN paises p
+    ON o.id_pais = p.id_pais -- o.id_oficina = p.id_oficina, significaría que cada oficina es un país
+WHERE p.nombre != "USA"
+
+SELECT l.titulo, a.nombre
+FROM libro l
+INNER JOIN autores a
+    ON l.id_autor = a.id_autor
+WHERE LENGTH(a.nombre) = 5
+
+/*
+El problema de usar funciones de agregacion en where es que mata el rendimiento porque el motor tiene que transformar cada fila antes de comparar, ignorando cualquier índice.
+WHERE UPPER(clientes.estado) = 'ACTIVO'
+
+Soluciones:
+1. Normalización en el INSERT, al insertar el string debe ya estar normalizado en el texto requerido
+2. Case-Insensitive Collation: Configurar la base de datos para que no distinga entre mayusculas ni minusculas
+*/

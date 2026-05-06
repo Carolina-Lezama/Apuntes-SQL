@@ -23,12 +23,6 @@ Excel intermedio/avanzado
 
 
 
-/* 
-
-
-*/
-
-
 
 
 Fase 4: Optimización y MLOps (Nivel Experto)
