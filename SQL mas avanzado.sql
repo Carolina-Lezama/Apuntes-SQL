@@ -126,12 +126,116 @@ El Problema de GROUP BY
 El GROUP BY colapsa (aplasta) las filas. 
 Pierdes el detalle de quién es el empleado, porque todo se resume a una fila por grupo.
 
+Las funciones de ventana se ejecutan CASI AL FINAL del query.
+Se calculan después del WHERE, después del GROUP BY y después del HAVING, pero antes del ORDER BY.
+
+Si necesitas filtrar por el resultado de una función de ventana, forzosamente tienes que meterla en un CTE (WITH) o subconsulta primero.
 */
 
+/*
+OVER()
+Calcula funciones de agregación, pero no aplasta las filas. Muestra el resultado al lado de cada fila original.
+*/
 
+SELECT 
+    nombre, 
+    salario, 
+    AVG(salario) OVER() AS promedio_global 
+FROM empleados;
+
+/*
+PARTITION BY
+PARTITION BY va dentro de los paréntesis del OVER(). Es como un GROUP BY, pero sin colapsar. Divide el set de datos en "ventanas" (grupos) lógicas y calcula la función solo para esa ventana.
+*/
+
+SELECT 
+    nombre, 
+    departamento,
+    salario, 
+    AVG(salario) OVER(PARTITION BY departamento) AS promedio_depto
+FROM empleados;
+
+SELECT nombre, grado, calificacion
+FROM (
+    SELECT 
+        nombre, 
+        grado, 
+        calificacion,
+        AVG(calificacion) OVER(PARTITION BY grado) AS promedio_del_grado
+    FROM alumnos
+) AS tabla_temporal -- ¡El alias es obligatorio!
+WHERE calificacion > promedio_del_grado; 
+
+SELECT
+    id_venta,
+    fecha,
+    monto,
+    SUM(monto) OVER() AS total_ventas
+FROM ventas;
+
+SELECT
+    nombre,
+    categoria,
+    precio,
+    MAX(precio) OVER(PARTITION BY categoria) AS maximo_categoria
+FROM productos;
+
+SELECT
+    nombre,
+    salario,
+    departamento,
+    salario - avg(salario) OVER(PARTITION BY departamento) AS diferencia_promedio
+FROM empleados;
+
+SELECT  
+    id_pedido,
+    id_cliente,
+    COUNT(id_cliente) OVER(PARTITION BY id_cliente) AS cantidad_pedidos
+FROM pedidos;
+
+WITH promedios_departamentos AS (
+    SELECT 
+        nombre, 
+        departamento, 
+        salario,
+        AVG(salario) OVER(PARTITION BY departamento) AS promedio_departamento
+    FROM empleados
+)
+SELECT  *
+FROM promedios_departamentos
+WHERE salario > promedio_departamento
+
+SELECT nombre, departamento, salario, promedio_departamento
+FROM (
+    SELECT 
+        nombre, 
+        departamento, 
+        salario,
+        AVG(salario) OVER(PARTITION BY departamento) AS promedio_departamento
+    FROM empleados
+) AS promedios_departamentos 
+WHERE salario > promedio_departamento; 
+
+-- en producción evitamos las subconsultas correlacionadas en tablas gigantes.
+SELECT 
+    e1.nombre,
+    e1.departamento,
+    e1.salario
+FROM empleados e1 
+WHERE e1.salario > (
+    -- Esta subconsulta calcula el promedio SOLO para el grado que se está leyendo
+    SELECT AVG(e2.salario)
+    FROM empleados e2
+    WHERE e1.departamento = e2.departamento 
+);
+
+-- Tema 4: JOIN de Subconsultas (Tablas Derivadas / Pre-agregación)
+/*
+En lugar de hacer un JOIN entre dos tablas físicas (que están guardadas en el disco), estamos haciendo un JOIN entre dos resultados temporales calculados al vuelo.
+
+*/
 
 -- ejercicios tema actual
-
 
 -- futuros temas
 
@@ -146,20 +250,7 @@ Explícame cómo hacer más simple con HAVING, JOIN, o ventana
 Funciones de Ventana (Window Functions) — Indispensable en 2026
 subconsultas
 
-SELECT *
-FROM
-(
-    SELECT id_cliente, SUM(total) ventas
-    FROM Pedidos
-    GROUP BY id_cliente
-) p
-INNER JOIN
-(
-    SELECT id_cliente, MAX(fecha) ultima_fecha
-    FROM Visitas
-    GROUP BY id_cliente
-) v
-ON p.id_cliente = v.id_cliente;
+
 RANK(), DENSE_RANK(), ROW_NUMBER() (para eliminar duplicados).
 JOINS
 LAG() y LEAD() (Fundamentales para análisis de series temporales, como lo que hiciste con los taxis).
