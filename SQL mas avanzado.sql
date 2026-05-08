@@ -233,9 +233,145 @@ WHERE e1.salario > (
 /*
 En lugar de hacer un JOIN entre dos tablas físicas (que están guardadas en el disco), estamos haciendo un JOIN entre dos resultados temporales calculados al vuelo.
 
+Sí, al realizar un JOIN con subconsultas (tablas derivadas o pre-agregaciones), es necesario tener un campo en común —como un ID, código o clave foránea— para establecer la relación lógica entre el conjunto de resultados derivado y la otra tabla o subconsulta
+
+Se ejecutan bloques que crean tablas virtuales, Finalmente, hace un INNER JOIN entre esas dos tablas virtuales que solo existen en la memoria RAM durante ese milisegundo.
+Agrupa primero, une después
+
+Alias Obligatorios
+
+*/
+SELECT *
+FROM (
+    SELECT id_cliente, SUM(total) ventas
+    FROM Pedidos
+    GROUP BY id_cliente
+) p
+INNER JOIN (
+    SELECT id_cliente, MAX(fecha) ultima_fecha 
+    FROM Visitas
+    GROUP BY id_cliente
+) v
+ON p.id_cliente = v.id_cliente;
+
+SELECT 
+    t1.id, 
+    t2.total_ventas
+FROM TablaPrincipal AS t1
+JOIN (
+    -- TABLA DERIVADA / PRE-AGREGACIÓN
+    SELECT 
+        cliente_id, 
+        SUM(monto) AS total_ventas
+    FROM Ventas
+    GROUP BY cliente_id
+) AS t2 ON t1.id = t2.cliente_id; -- CAMPO COMÚN (id/cliente_id)
+
+WITH historial_completo AS (
+    -- Metemos toda la operación de apilado aquí adentro
+    SELECT id_cliente, 'Hizo un pedido' AS accion
+    FROM pedidos
+    
+    UNION ALL
+    
+    SELECT id_cliente, 'Hizo una visita' AS accion
+    FROM visitas
+)
+-- Y luego simplemente llamamos al resultado
+SELECT * 
+FROM historial_completo;
+
+WITH 
+-- 1. Empaquetamos todo lo de Pedidos
+tabla_pedidos AS (
+    SELECT id_cliente, total_comprado
+    FROM pedidos
+    WHERE estado = 'Completado'
+), -- <--- ¡ESTA COMA ES LA CLAVE MAGICA!
+-- 2. Empaquetamos todo lo de Visitas
+tabla_visitas AS (
+    SELECT id_cliente, fecha_visita
+    FROM visitas
+    WHERE fecha_visita > '2023-01-01'
+)
+-- 3. Finalmente, unimos nuestros dos paquetes limpios
+SELECT p.id_cliente, p.total_comprado, v.fecha_visita
+FROM tabla_pedidos p
+JOIN tabla_visitas v ON p.id_cliente = v.id_cliente;
+
+SELECT *
+FROM (
+    SELECT id_usuario, SUM(monto) gasto
+    FROM compras 
+    GROUP by id_usuario
+) c
+INNER JOIN (
+    SELECT id_usuario, COUNT(id_ticket) tickets
+    FROM soporte
+    GROUP by id_usuario
+) s
+ON c.id_usuario = s.id_usuario
+WHERE gasto > 1000
+
+WITH 
+todos_pedidos AS 
+(
+    SELECT id_cliente, SUM(total) ventas
+    FROM Pedidos
+    GROUP BY id_cliente
+), 
+todos_visitas AS
+(
+    SELECT id_cliente, MAX(fecha) ultima_fecha
+    FROM Visitas
+    GROUP BY id_cliente
+)
+SELECT *
+FROM todos_pedidos p
+JOIN todos_visitas v
+ON p.id_cliente = v.id_cliente;
+
+SELECT 
+    d.id_departamento,
+    d.nombre,
+    e.num_empleados
+FROM departamentos AS d
+JOIN (
+    SELECT 
+        id_departamento, 
+        COUNT(*) AS num_empleados
+    FROM empleados
+    GROUP BY id_departamento
+) AS e ON d.id_departamento = e.id_departamento; 
+
+-- Tema 5: El Ranking de los Datos (ROW_NUMBER, RANK, DENSE_RANK)
+/*
+Estas tres son Funciones de Ventana (Window Functions), por lo que usan la cláusula OVER(). Su propósito es asignar un número secuencial a las filas.
+aquí es obligatorio usar un ORDER BY dentro del paréntesis, porque el motor necesita saber bajo qué criterio va a repartir los números (del 1 al N)
+
+ROW_NUMBER() (El Estricto): Ignora los empates. Asigna un número único y secuencial sin importar nada.
+(El desempate es aleatorio o según otra columna)
+
+RANK() (El Justo pero con huecos): Reconoce el empate y les da el mismo lugar, pero se salta los números siguientes.
+Ana: 1, Luis: 2, Carlos: 2, Zoe: 4. (Nadie quedó en 3er lugar).
+
+DENSE_RANK() (El Compacto): Reconoce el empate pero no deja huecos.
+Ana: 1, Luis: 2, Carlos: 2, Zoe: 3.
 */
 
+/*
+Eliminar Duplicados (Deduplicación)
+
+*/
+SELECT 
+    id_cliente, 
+    nombre, 
+    fecha_registro,
+    ROW_NUMBER() OVER(PARTITION BY id_cliente ORDER BY fecha_registro DESC) AS rn
+FROM clientes;
+
 -- ejercicios tema actual
+
 
 -- futuros temas
 
@@ -251,7 +387,6 @@ Funciones de Ventana (Window Functions) — Indispensable en 2026
 subconsultas
 
 
-RANK(), DENSE_RANK(), ROW_NUMBER() (para eliminar duplicados).
 JOINS
 LAG() y LEAD() (Fundamentales para análisis de series temporales, como lo que hiciste con los taxis).
 Función ventana.
