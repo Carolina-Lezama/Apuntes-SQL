@@ -390,6 +390,10 @@ FROM productos;
 SELECT TRIM(nombre)
 FROM clientes;
 
+SELECT id_cliente, nombre, correo
+FROM clientes
+WHERE TRIM(nombre) = 'Ana';
+
 SELECT nombre, LEFT(contraseña, 3) AS pista
 FROM clientes;
 

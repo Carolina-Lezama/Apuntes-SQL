@@ -359,47 +359,150 @@ DENSE_RANK() (El Compacto): Reconoce el empate pero no deja huecos.
 Ana: 1, Luis: 2, Carlos: 2, Zoe: 3.
 */
 
-/*
-Eliminar Duplicados (Deduplicación)
-
-*/
+-- Eliminar Duplicados (Deduplicación) 
+-- Paso 1: Asignar números (El más reciente será el 1) / ROW_NUMBER()
 SELECT 
     id_cliente, 
     nombre, 
     fecha_registro,
     ROW_NUMBER() OVER(PARTITION BY id_cliente ORDER BY fecha_registro DESC) AS rn
 FROM clientes;
+-- Paso 2: Filtrar usando un CTE
+WITH Clientes_Numerados AS (
+    SELECT 
+        id_cliente, nombre, fecha_registro,
+        ROW_NUMBER() OVER(PARTITION BY id_cliente ORDER BY fecha_registro DESC) AS rn
+    FROM clientes
+)
+SELECT id_cliente, nombre, fecha_registro
+FROM Clientes_Numerados
+WHERE rn = 1; -- ¡Adiós duplicados!
+
+SELECT
+    nombre,
+    departamento,
+    salario,
+    DENSE_RANK() OVER(PARTITION BY departamento ORDER BY salario DESC) AS ranking_salarial
+FROM empleados;
+
+WITH empresa AS(
+SELECT
+    nombre,
+    departamento,
+    salario,
+    DENSE_RANK() OVER(PARTITION BY departamento ORDER BY salario DESC) AS ranking_salarial
+FROM empleados
+)
+SELECT * 
+FROM empresa
+WHERE ranking_salarial <= 3; -- ¡Así garantizas el Top 3 de CADA departamento!
+
+WITH logins AS (
+SELECT
+    id_usuario, 
+    ip,
+    fecha_login,
+    ROW_NUMBER () OVER(PARTITION BY id_usuario ORDER BY fecha_login ASC) AS primer_login
+FROM usuarios
+)
+SELECT *
+from logins
+WHERE primer_login = 1;
+
+SELECT *
+from logins
+WHERE primer_login != 1;
+
+-- Tema 6: Consolidación Maestra: Subconsultas en el WHERE vs. en el FROM
+/*
+Entender cuándo usar una subconsulta en el WHERE (para filtrar) y cuándo en el FROM (para pre-agregación) es lo que define la eficiencia de un query.
+
+Subconsultas en el WHERE (El Filtro Dinámico)
+Se usan cuando necesitas evaluar las filas de tu tabla principal contra un valor o lista de valores que aún no conoces y que debes calcular al vuelo.
+- Si usas operadores escalares (=, >, <), la subconsulta debe devolver 1 sola fila y 1 sola columna.
+- Si usas operadores de conjunto (IN, NOT IN, ANY, ALL), la subconsulta puede devolver múltiples filas, pero siempre 1 sola columna.
+
+Subconsultas en el FROM (Tablas Derivadas / Inline Views)
+Se usan cuando necesitas transformar, limpiar o pre-agregaciones antes de unir los datos con otras tablas.
+- Prevención de Explosión: Agrupar en el FROM antes de hacer un JOIN evita que se multipliquen filas accidentalmente
+- Alias Obligatorio: Toda subconsulta en el FROM debe tener un alias asignado al final del paréntesis (... ) AS tabla_temporal;
+*/
+
+
 
 -- ejercicios tema actual
+SELECT
+    nombre,
+    precio
+FROM productos
+WHERE precio > (
+    SELECT precio
+    FROM productos
+    WHERE TRIM(nombre) = 'Laptop Pro'
+);
 
+/*
+Te regresará solo 1 fila por usuario (asumiendo que en tu tabla externa cada usuario aparece una sola vez)
+Le da exactamente igual si el 1 estaba una vez o un millón de veces en la subconsulta; la respuesta a la pregunta "¿existe?" ya se respondió.
+*/
+SELECT
+    nombre,
+    telefono
+FROM clientes
+WHERE id in (
+    SELECT id_cliente
+    FROM pedidos
+    WHERE metodo_pago = 'Targeta'
+);
 
+SELECT e.nombre, v.total_vendido,
+    CASE 
+        WHEN v.total_vendido > 50000 THEN 'Estrella'
+        ELSE 'Regular'
+    END AS clasificacion
+FROM (
+    SELECT id_vendedor, SUM(monto) AS total_vendido
+    FROM ventas
+    GROUP BY id_vendedor
+) AS v
+INNER JOIN empleados e
+ON v.id_vendedor = e.id
+
+SELECT *
+FROM (
+    SELECT
+        id, 
+        nombre, 
+        departamento, 
+        salario,
+        ROW_NUMBER() OVER(PARTITION BY nombre ORDER BY salario DESC) AS empleado_salario
+    FROM empleados
+) AS extraccion
+WHERE id = (
+    SELECT
+        id,
+        ROW_NUMBER() OVER(PARTITION BY nombre ORDER BY salario DESC) AS empleado_salario
+    FROM empleados
+)
+
+WHERE empleado_salario = 2; -- sin tener que usar subconsulta en el where
 -- futuros temas
+
 
 TRY_CAST
 Solución: Si esperas varios valores, usa el operador IN.
-
 aprender WHERE MOD(ID, 2) = 0
-
 Explícame cómo hacer más simple con HAVING, JOIN, o ventana
 2. La forma "Pro": CTE (Cláusula WITH)
-
 Funciones de Ventana (Window Functions) — Indispensable en 2026
 subconsultas
-
-
 JOINS
 LAG() y LEAD() (Fundamentales para análisis de series temporales, como lo que hiciste con los taxis).
 Función ventana.
 Subconsultas y Modularización
-
-Subconsultas en el WHERE y en el FROM.
-
 CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
-
 Manipulación de Tipos de Datos
-
 Funciones de Fecha: DATE_TRUNC(), EXTRACT(), DATEDIFF().
-
 Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
 
 
