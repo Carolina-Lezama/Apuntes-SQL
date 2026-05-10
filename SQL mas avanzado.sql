@@ -428,9 +428,37 @@ Se usan cuando necesitas transformar, limpiar o pre-agregaciones antes de unir l
 - Alias Obligatorio: Toda subconsulta en el FROM debe tener un alias asignado al final del paréntesis (... ) AS tabla_temporal;
 */
 
+SELECT nombre, salario
+FROM empleados
+WHERE departamento IN (
+    -- Esto es la subconsulta en el WHERE
+    SELECT id_departamento FROM departamentos WHERE ubicacion = 'Norte'
+);
 
+SELECT 
+    t.nombre, 
+    t.departamento, 
+    t.salario
+FROM (
+    -- 1. SUBCONSULTA EN EL FROM: Crea la tabla con el ranking de salarios
+    SELECT 
+        nombre, 
+        departamento, 
+        salario,
+        ROW_NUMBER() OVER(PARTITION BY departamento ORDER BY salario DESC) AS empleado_salario
+    FROM empleados
+) AS t 
 
--- ejercicios tema actual
+WHERE t.empleado_salario = 1 -- Filtro normal
+  AND t.departamento IN (
+      
+      -- 2. SUBCONSULTA EN EL WHERE: Trae la lista de departamentos ricos
+      SELECT id_departamento 
+      FROM departamentos 
+      WHERE presupuesto > 500000
+      
+  );
+
 SELECT
     nombre,
     precio
@@ -452,7 +480,7 @@ FROM clientes
 WHERE id in (
     SELECT id_cliente
     FROM pedidos
-    WHERE metodo_pago = 'Targeta'
+    WHERE metodo_pago = 'Tarjeta'
 );
 
 SELECT e.nombre, v.total_vendido,
@@ -466,33 +494,136 @@ FROM (
     GROUP BY id_vendedor
 ) AS v
 INNER JOIN empleados e
-ON v.id_vendedor = e.id
+ON v.id_vendedor = e.id;
 
 SELECT *
 FROM (
     SELECT
-        id, 
         nombre, 
         departamento, 
         salario,
-        ROW_NUMBER() OVER(PARTITION BY nombre ORDER BY salario DESC) AS empleado_salario
+        ROW_NUMBER() OVER(ORDER BY salario DESC) AS empleado_salario
     FROM empleados
 ) AS extraccion
-WHERE id = (
-    SELECT
-        id,
-        ROW_NUMBER() OVER(PARTITION BY nombre ORDER BY salario DESC) AS empleado_salario
-    FROM empleados
-)
+WHERE extraccion.empleado_salario = 2; 
 
-WHERE empleado_salario = 2; -- sin tener que usar subconsulta en el where
+-- Tema 7: Refactorización y Simplificación (HAVING vs. JOIN vs. Ventanas)
+/*
+No uses una subconsulta si existe una herramienta nativa diseñada para ese trabajo.
+
+Los motores relacionales están altamente optimizados para cruzar índices con JOIN. 
+Cruzar conjuntos completos de golpe es infinitamente más rápido que disparar miles de mini-consultas individuales.
+*/
+
+-- Simplificar con HAVING (Filtros de Agregación directos)
+-- Evitar subconsultas en el from para luego usar where
+
+-- Antes:
+SELECT id_cliente, total_gastado
+FROM (
+    SELECT id_cliente, SUM(monto) AS total_gastado
+    FROM compras
+    GROUP BY id_cliente
+) AS temporal
+WHERE total_gastado > 5000;
+-- Despues:
+SELECT id_cliente, SUM(monto) AS total_gastado
+FROM compras
+GROUP BY id_cliente
+HAVING SUM(monto) > 5000;
+
+-- Simplificar con JOIN (Evitar Subconsultas en el SELECT)
+
+-- Antes:
+SELECT 
+    id_pedido,
+    monto,
+    (SELECT nombre FROM clientes WHERE id = pedidos.id_cliente) AS nombre_cliente
+FROM pedidos;
+-- Despues:
+SELECT p.id_pedido, p.monto, c.nombre AS nombre_cliente
+FROM pedidos p
+LEFT JOIN clientes c ON p.id_cliente = c.id;
+
+-- Simplificar con Ventanas OVER() (Comparativas sin JOINs)
+-- Antes:
+SELECT e.nombre, e.salario, depto.promedio
+FROM empleados e
+INNER JOIN (
+    SELECT departamento, AVG(salario) AS promedio
+    FROM empleados
+    GROUP BY departamento
+) AS depto ON e.departamento = depto.departamento;
+-- Despues:
+SELECT 
+    nombre, 
+    salario, 
+    AVG(salario) OVER(PARTITION BY departamento) AS promedio
+FROM empleados;
+
+SELECT
+    categoria,
+    COUNT(*) AS conteo
+FROM productos
+GROUP BY categoria
+HAVING COUNT(*) > 10;
+
+SELECT
+    id_venta,
+    monto,
+    (monto / SUM(monto) OVER()) * 100 AS porcentaje
+FROM ventas
+
+SELECT
+    e.nombre,
+    e.apellido,
+    s.nombre_sucursal AS sucursal
+FROM
+    empleados e
+LEFT JOIN sucursales s
+    ON e.sucursal_id = s.id
+
+SELECT
+    id_cliente,
+    MAX(fecha)
+FROM pedidos
+GROUP BY id_cliente
+HAVING COUNT(*) > 5;
+
+-- Tema 8: Conversión Segura de Tipos (TRY_CAST)
+/*
+El Peligro de CAST() estándar
+La función tradicional CAST(columna AS INT) fuerza al motor a transformar ellta comple tipo de dato. 
+Si encuentra una cadena de texto que no puede convertir a número, la consuta aborta
+
+TRY_CAST(columna AS tipo_dato) intenta realizar la conversión. Si la conversión es exitosa, devuelve el dato transformado. 
+Si la conversión falla, devuelve NULL de manera silenciosa y segura
+
+Imputación Inmediata con COALESCE
+casi nunca se deja el NULL resultante flotando en el dataset final. 
+Lo combinamos inmediatamente con COALESCE para asignar un valor por defecto (imputación de datos)
+*/
+
+SELECT 
+    TRY_CAST('150' AS INT) AS conversion_exitosa,      -- Devuelve: 150 (Entero)
+    TRY_CAST('Sin definir' AS INT) AS conversion_fallida -- Devuelve: NULL
+
+SELECT 
+    id_registro,
+    -- Si falla al convertir a entero, ponle un 0 automáticamente
+    COALESCE(TRY_CAST(edad_texto AS INT), 0) AS edad_limpia
+FROM usuarios_landing;
+
+
+-- ejercicios del tema actual
+
+
 -- futuros temas
 
 
-TRY_CAST
+
 Solución: Si esperas varios valores, usa el operador IN.
 aprender WHERE MOD(ID, 2) = 0
-Explícame cómo hacer más simple con HAVING, JOIN, o ventana
 2. La forma "Pro": CTE (Cláusula WITH)
 Funciones de Ventana (Window Functions) — Indispensable en 2026
 subconsultas
