@@ -590,7 +590,28 @@ FROM pedidos
 GROUP BY id_cliente
 HAVING COUNT(*) > 5;
 
--- Tema 8: Conversión Segura de Tipos (TRY_CAST)
+-- Tema 8: SELECT Y GROUP BY 
+/*
+Según el estándar oficial de SQL, NO se deberían poder usar los alias del SELECT en el GROUP BY, precisamente porque el GROUP BY ocurre un paso antes de que el motor lea el SELECT y cree los alias.
+
+¿por qué a veces funciona?
+Los creadores de algunos sistemas decidieron hacer una "excepción a la regla" por pura comodidad para los programadores, para que no tengamos que repetir fórmulas gigantescas.
+¿Permite alias en GROUP BY?	Si
+*/
+
+-- Antes:
+SELECT (salary * months) AS earnings, COUNT(*)
+FROM Employee
+GROUP BY (salary * months) 
+ORDER BY earnings DESC;  
+-- Despues:
+SELECT (salary * months) AS earnings, COUNT(*)
+FROM Employee
+GROUP BY earnings
+ORDER BY earnings DESC 
+LIMIT 1;     
+
+-- Tema 9: Conversión Segura de Tipos (TRY_CAST)
 /*
 El Peligro de CAST() estándar
 La función tradicional CAST(columna AS INT) fuerza al motor a transformar ellta comple tipo de dato. 

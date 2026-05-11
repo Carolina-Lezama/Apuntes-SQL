@@ -216,3 +216,63 @@ SELECT
     END AS TriangleType
 FROM TRIANGLES;
 
+/*
+Write a query to find the maximum total earnings for all employees as well as the total number of employees who have maximum total earnings.
+*/
+SELECT (salary * months) AS earnings, COUNT(*)
+FROM Employee
+GROUP BY earnings
+ORDER BY earnings DESC 
+LIMIT 1;     
+
+/*
+Query the following two values from the STATION table:
+The sum of all values in LAT_N rounded to a scale of  decimal places.
+The sum of all values in LONG_W rounded to a scale of  decimal places.
+*/
+SELECT ROUND(SUM(LAT_N),2), ROUND(SUM(LONG_W),2)
+FROM STATION;
+
+/*
+Query the sum of Northern Latitudes (LAT_N) from STATION having values greater than  and less than. 
+Truncate your answer to  decimal places.
+*/
+SELECT TRUNCATE(SUM(LAT_N), 4) -- TRUNCATE(número_a_cortar, cuántos_decimales_dejo)
+FROM STATION
+WHERE LAT_N > 38.7880 AND LAT_N < 137.2345;
+
+/*
+Query the greatest value of the Northern Latitudes (LAT_N) from STATION that is less than.
+Truncate your answer to  decimal places.
+*/
+SELECT TRUNCATE(MAX(LAT_N),4)
+FROM STATION
+WHERE LAT_N < 137.2345
+LIMIT 1;
+
+/*
+Query the Western Longitude (LONG_W) for the largest Northern Latitude (LAT_N) in STATION that is less than . Round your answer to  decimal places.
+*/
+SELECT ROUND(LONG_W ,4)
+FROM STATION
+WHERE LAT_N < 137.2345
+ORDER BY LAT_N DESC
+LIMIT 1;
+
+/*
+Query the smallest Northern Latitude (LAT_N) from STATION that is greater than.Round your answer to  decimal places.
+*/
+SELECT ROUND(LAT_N,4)
+FROM STATION
+WHERE LAT_N >38.7780
+ORDER BY LAT_N ASC
+LIMIT 1;
+
+/*
+Query the Western Longitude (LONG_W)where the smallest Northern Latitude (LAT_N) in STATION is greater than. Round your answer to  decimal places.
+*/
+SELECT ROUND(LONG_W,4)
+FROM STATION
+WHERE LAT_N > 38.7780
+ORDER BY LAT_N ASC
+LIMIT 1;
