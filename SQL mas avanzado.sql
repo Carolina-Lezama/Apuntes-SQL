@@ -679,6 +679,9 @@ SELECT id_producto_int
 FROM productos_numerados
 WHERE rn = 1
 ORDER BY id_producto_int ASC; 
+/*
+Para deduplicar de forma segura, particionamos por el ID, pero ordenamos por un criterio de desempate (como una fecha de registro o un número de fila secundario).
+*/
 
 -- Tema 10: La forma "Pro": CTE (Cláusula WITH)
 /*
@@ -698,24 +701,76 @@ SELECT id_vendedor, SUM(monto_limpio) AS total
 FROM Ventas_Limpias
 GROUP BY id_vendedor;
 
+/*
+Puedes declarar varios CTEs separándolos únicamente por una coma
+un CTE secundario puede consultar a un CTE primario
 
--- ejercicios del tema actual
+Puedes invocar el mismo CTE múltiples veces en tus JOINs principales sin tener que reescribir la subconsulta entera.
+*/
 
--- futuros temas
+WITH Clientes_Activos AS (
+    SELECT id_cliente, nombre FROM clientes WHERE estatus = 'ACTIVO'
+),
+Pedidos_Recientes AS (
+    SELECT id_cliente, SUM(total) AS gasto 
+    FROM pedidos 
+    WHERE fecha >= '2026-01-01'
+    GROUP BY id_cliente
+)
+-- Unimos nuestros dos bloques limpios
+SELECT c.nombre, p.gasto
+FROM Clientes_Activos c
+INNER JOIN Pedidos_Recientes p ON c.id_cliente = p.id_cliente;
 
+WITH emp_nuevos AS (
+    SELECT nombre, departamento, salario 
+    FROM empleados 
+    WHERE fecha_contratacion >= '2020-01-01'
+)
+SELECT departamento, AVG(salario) AS salario_promedio
+FROM emp_nuevos
+GROUP BY departamento;
 
+WITH Data_Casteada AS (
+    SELECT id_usuario,
+        TRY_CAST(puntuacion_cruda AS INT) AS puntuacion_cruda_int
+    FROM evaluaciones
+),
+    Usuarios_Validos AS (
+        SELECT *
+        FROM Data_Casteada
+        WHERE puntuacion_cruda_int > 50 AND puntuacion_cruda_int IS NOT NULL
+    )
+SELECT *
+FROM Usuarios_Validos
 
-Solución: Si esperas varios valores, usa el operador IN.
-aprender WHERE MOD(ID, 2) = 0
-Funciones de Ventana (Window Functions) — Indispensable en 2026
-subconsultas
-JOINS
-LAG() y LEAD() (Fundamentales para análisis de series temporales, como lo que hiciste con los taxis).
-Función ventana.
-Subconsultas y Modularización
-CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
-Manipulación de Tipos de Datos
-Funciones de Fecha: DATE_TRUNC(), EXTRACT(), DATEDIFF().
-Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
+WITH Transacciones_Numeradas AS (
+    SELECT 
+    id_transaccion,
+    fecha_procesamiento,
+    ROW_NUMBER() OVER(PARTITION BY id_transaccion ORDER BY fecha_procesamiento DESC) AS deduplicacion
+    FROM transacciones_web
+)
+SELECT *
+FROM Transacciones_Numeradas
+WHERE deduplicacion = 1
 
+WITH Total_Ventas AS(
+    SELECT id_tienda, SUM(ingresos) AS total_ingresos
+    FROM ventas
+    GROUP BY id_tienda
+),
+    Top_Tiendas AS (
+        SELECT *
+        FROM tiendas
+        WHERE ubicacion = 'Norte'
+)
+SELECT *
+FROM Top_Tiendas t
+INNER JOIN Total_Ventas v
+ON t.id_tienda = v.id_tienda
+/*
+Evitar el SELECT * en uniones finales
+Al usar el asterisco en un JOIN, la base de datos te devolverá ambas columnas de enlace enviando datos duplicados a través de la red
 
+*/
