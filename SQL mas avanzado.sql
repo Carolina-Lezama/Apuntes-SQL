@@ -635,9 +635,71 @@ SELECT
     COALESCE(TRY_CAST(edad_texto AS INT), 0) AS edad_limpia
 FROM usuarios_landing;
 
+WITH sensores_convertidos AS (
+    SELECT 
+        id_sensor, 
+        TRY_CAST(temperatura_raw AS DECIMAL(5,2)) AS temperatura_limpia
+    FROM lecturas_sensor
+)
+
+SELECT id_sensor, temperatura_limpia
+FROM sensores_convertidos
+WHERE temperatura_limpia IS NOT NULL;   
+
+SELECT 
+    id_sensor, 
+    TRY_CAST(temperatura_raw AS DECIMAL(5,2)) AS temperatura_limpia
+FROM lecturas_sensor
+WHERE TRY_CAST(temperatura_raw AS DECIMAL(5,2)) IS NOT NULL;
+/*
+DECIMAL(precisión, escala).
+(La Precisión): Es el número total de dígitos que puede almacenar el número en total (contando los que están a la izquierda y a la derecha del punto decimal).
+(La Escala): Es el número máximo de dígitos que obligatoriamente van a estar a la derecha del punto decimal.
+*/
+
+-- No puedes declarar un alias dentro de los paréntesis de una función de agregación.
+SELECT SUM(TRY_CAST(ingreso_mensual AS INT)) AS total_ingresos 
+FROM finanzas_import;
+
+CASE 
+    WHEN TRY_CAST(codigo_postal AS INT) IS NULL THEN 'Extranjero / Invalido'
+    ELSE 'Nacional'
+END AS region_valida
+
+WITH productos_numerados AS (
+    SELECT 
+        COALESCE(TRY_CAST(id_producto AS INT), 0) AS id_producto_int,
+        ROW_NUMBER() OVER(
+            PARTITION BY id_producto 
+            ORDER BY COALESCE(TRY_CAST(id_producto AS INT), 0) ASC
+        ) AS rn
+    FROM catálogo_crudo
+)
+SELECT id_producto_int
+FROM productos_numerados
+WHERE rn = 1
+ORDER BY id_producto_int ASC; 
+
+-- Tema 10: La forma "Pro": CTE (Cláusula WITH)
+/*
+un CTE es como declarar variables limpias al inicio de tu script de Python antes de usarlas en la lógica principal.
+
+Es un conjunto de resultados temporal y con nombre que solo existe durante la ejecución de esa consulta específica. 
+No se guarda en el disco duro, vive en la memoria RAM y se destruye en cuanto el query termina.
+*/
+WITH Ventas_Limpias AS (
+    SELECT 
+        id_vendedor, 
+        TRY_CAST(monto AS DECIMAL(10,2)) AS monto_limpio
+    FROM ventas_raw
+    WHERE TRY_CAST(monto AS DECIMAL(10,2)) IS NOT NULL
+)
+SELECT id_vendedor, SUM(monto_limpio) AS total
+FROM Ventas_Limpias
+GROUP BY id_vendedor;
+
 
 -- ejercicios del tema actual
-
 
 -- futuros temas
 
@@ -645,7 +707,6 @@ FROM usuarios_landing;
 
 Solución: Si esperas varios valores, usa el operador IN.
 aprender WHERE MOD(ID, 2) = 0
-2. La forma "Pro": CTE (Cláusula WITH)
 Funciones de Ventana (Window Functions) — Indispensable en 2026
 subconsultas
 JOINS
