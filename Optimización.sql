@@ -151,6 +151,139 @@ SELECT
 FROM estudiantes;
 
 -- Tema 3: Funciones de Fecha y Tiempo (Series Temporales)
+-- El manejo de fechas es el área que más cambia dependiendo del motor de base de datos
+
+/*
+EXTRACT(): La Lupa de la Estacionalidad
+Saca un dato específica de la fecha y te la devuelve como un número entero.
+
+Sintaxis: EXTRACT(parte FROM columna_fecha)
+
+Básicos de Fecha: YEAR, MONTH, DAY
+Básicos de Tiempo: HOUR, MINUTE, SECOND
+Avanzados: DOW (Day of Week), DOY (Day of Year), WEEK: El número de la semana del año, QUARTER: El trimestre (1 a 4)
+*/
+EXTRACT(MONTH FROM '2026-05-16') -- Devuelve 5
+
+-- ¿Cómo se ve EXTRACT en una consulta completa? para crear una "nueva característica" (feature engineering)
+SELECT 
+    id_venta,
+    fecha_transaccion,
+    monto,
+    EXTRACT(MONTH FROM fecha_transaccion) AS mes_venta,
+    EXTRACT(YEAR FROM fecha_transaccion) AS anio_venta
+FROM ventas
+WHERE EXTRACT(YEAR FROM fecha_transaccion) = 2026;
+
+/*
+DATE_TRUNC(): El Redondeo Temporal
+DATE_TRUNC "corta" o "redondea hacia abajo" la fecha, pero la mantiene como tipo Fecha. 
+Pone todo lo demás en 01 o 00:00:00; e devuelve la fecha completa reseteada al primer día
+
+Sintaxis: DATE_TRUNC('parte', columna_fecha)
+
+'year'	    2026-01-01 00:00:00	Reportes anuales.
+'quarter'	2026-04-01 00:00:00	Evaluaciones financieras (Q1, Q2, Q3, Q4).
+'month'	    2026-05-01 00:00:00	El rey indiscutible.
+'week'	    2026-05-18 00:00:00	Te manda al lunes de esa semana.
+'day'	    2026-05-18 00:00:00	Elimina las horas y minutos.
+'hour'	    2026-05-18 21:00:00	Deja la hora, elimina los minutos.
+*/
+DATE_TRUNC('month', '2026-05-16 14:30:00') -- Devuelve 2026-05-01 00:00:00
+
+-- Ejemplo de Consulta Completa
+SELECT 
+    DATE_TRUNC('month', fecha_registro) AS mes_cohorte,
+    COUNT(id_usuario) AS total_nuevos_usuarios
+FROM usuarios
+WHERE fecha_registro >= '2025-01-01'
+GROUP BY DATE_TRUNC('month', fecha_registro)
+ORDER BY mes_cohorte ASC;
+
+/*
+3. DATEDIFF() / Resta de Fechas: Distancia en el Tiempo
+Sirve para saber cuánto tiempo ha pasado entre el Punto A y el Punto B.
+
+En SQL Server / MySQL, se usa DATEDIFF(parte, fecha_inicio, fecha_fin).
+En PostgreSQL / BigQuery, a menudo puedes simplemente restar las fechas (fecha_fin - fecha_inicio te da el número de días) o usar la función AGE().
+
+ALERTA DE PRODUCCIÓN: La Trampa de los Husos Horarios (Timezones)
+
+Nunca asumas que el servidor de la base de datos está en tu mismo país. 
+Si el servidor está en UTC (Inglaterra) y tú en México, una venta hecha a las 10:00 PM del martes en México se registrará como las 4:00 AM del miércoles en la base de datos.
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Tema 4: Pequeñas consultas o consulta monstruosa.
+/*
+sql se suele usar para features engineering, el estándar moderno favorece hacerlo en SQL (siempre que sea posible).
+el motor de SQL (que está diseñado específicamente para eso) procese las fechas, extraiga los meses, días y semanas, y le entregue a Python una tabla ya limpia y con las columnas listas.
+
+Si estás preparando la tabla definitiva que alimentará tu modelo o tu dashboard, el estándar es dejar esas columnas creadas en SQL.
+Si estás explorando, experimentando o trabajando con archivos planos, lo haces en Python.
+*/
+
+/*
+Divide y vencerás (usa el enfoque modular). Trata de no meter todo en tu consulta original.
+crear consultas nuevas y unirlas al final.
+los Científicos de Datos y Data Engineers usan CTEs (WITH). Construyes bloques separados y los unes al final con un JOIN.
+*/
+
+-- BLOQUE 1: Tu tabla maestra original (Datos básicos, 1 fila por usuario)
+WITH tabla_maestra AS (
+    SELECT 
+        id_usuario, 
+        nombre, 
+        fecha_registro,
+        pais
+    FROM usuarios
+),
+
+-- BLOQUE 2: Los nuevos datos que quisiste agregar después (Ej. sus compras)
+nuevas_metricas_compras AS (
+    SELECT 
+        id_usuario, 
+        SUM(monto) AS total_gastado,
+        COUNT(id_ticket) AS total_compras
+    FROM ventas
+    GROUP BY id_usuario
+),
+
+-- BLOQUE 3: Otro dato que se te ocurrió al final (Ej. última visita)
+metrica_visitas AS (
+    SELECT 
+        id_usuario,
+        MAX(fecha_login) AS ultimo_login
+    FROM sesiones
+    GROUP BY id_usuario
+)
+
+-- EL GRAN FINAL: Armas el rompecabezas uniendo todo a tu maestra
+SELECT 
+    tm.id_usuario,
+    tm.nombre,
+    tm.pais,
+    c.total_gastado,
+    v.ultimo_login
+FROM tabla_maestra tm
+LEFT JOIN nuevas_metricas_compras c ON tm.id_usuario = c.id_usuario
+LEFT JOIN metrica_visitas v ON tm.id_usuario = v.id_usuario;
+
 
 -- ejercicios del tema actual
 
