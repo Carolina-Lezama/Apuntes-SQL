@@ -203,31 +203,93 @@ ORDER BY mes_cohorte ASC;
 /*
 3. DATEDIFF() / Resta de Fechas: Distancia en el Tiempo
 Sirve para saber cuánto tiempo ha pasado entre el Punto A y el Punto B.
-
-En SQL Server / MySQL, se usa DATEDIFF(parte, fecha_inicio, fecha_fin).
-En PostgreSQL / BigQuery, a menudo puedes simplemente restar las fechas (fecha_fin - fecha_inicio te da el número de días) o usar la función AGE().
+Esta función te devuelve un número entero (la cantidad de días, meses o años entre dos fechas)
 
 ALERTA DE PRODUCCIÓN: La Trampa de los Husos Horarios (Timezones)
 
 Nunca asumas que el servidor de la base de datos está en tu mismo país. 
 Si el servidor está en UTC (Inglaterra) y tú en México, una venta hecha a las 10:00 PM del martes en México se registrará como las 4:00 AM del miércoles en la base de datos.
+En bases de datos globales, siempre debes convertir la zona horaria antes de agrupar (ej. AT TIME ZONE
 
 */
 
+DATEDIFF(parte, fecha_inicio, fecha_fin) --En SQL Server / MySQL
+SELECT DATEDIFF(day, '2026-05-10', '2026-05-15'); -- Devuelve 5 (días)
+-- primero la fecha final y luego la inicial
 
+(fecha_fin - fecha_inicio te da el número de días) -- En PostgreSQL / BigQuery,a menudo puedes simplemente restar las fechas  o usar la función AGE().
+-- no existe `DATEDIFF` por defecto. En su lugar, usas matemáticas simples.
+SELECT '2026-05-15'::DATE - '2026-05-10'::DATE; -- Devuelve 5
+SELECT '2026-05-15 12:30:00'::TIMESTAMP - '2026-05-10 02:00:00'::TIMESTAMP;
 
+-- Usando `AGE()` (La joya de PostgreSQL)
+-- En lugar de darte todo en días, te devuelve un intervalo en un formato súper legible para humanos: Años, meses y días.
+SELECT AGE('2026-05-19', '1990-01-01'); 
+-- Resultado: '36 years 4 mons 18 days'
 
+-- Ejemplo de Consulta Completa
+SELECT 
+    id_pedido,
+    fecha_compra,
+    fecha_envio,
+    -- 1. Resta simple: Días exactos que tardó la paquetería
+    (fecha_envio::DATE - fecha_compra::DATE) AS dias_para_envio,
+    -- 2. AGE: Tiempo exacto desde que el usuario creó su cuenta
+    AGE(CURRENT_DATE, u.fecha_registro) AS antiguedad_cliente
+FROM pedidos p
+JOIN usuarios u ON p.id_usuario = u.id_usuario
+WHERE fecha_envio IS NOT NULL;
 
+/*
+El dolor de cabeza global: Agrupar con AT TIME ZONE
+Usar AT TIME ZONE para convertir la fecha del servidor a la hora local antes de truncarla o extraer el día.
+Siempre, siempre haz la conversión de zona horaria por dentro, antes de aplicar cualquier EXTRACT o DATE_TRUNC.
+*/
 
+SELECT 
+    -- 1. Tomamos la fecha del servidor (UTC)
+    -- 2. La convertimos a la hora de México
+    -- 3. La truncamos para agrupar por día
+    DATE_TRUNC('day', fecha_compra AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City') AS dia_venta_local,
+    COUNT(id_pedido) AS total_pedidos,
+    SUM(monto) AS ingresos_totales
+FROM ventas
+GROUP BY DATE_TRUNC('day', fecha_compra AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City')
+ORDER BY dia_venta_local DESC;
 
+/*
+Si agrupas una tabla por EXTRACT(MONTH FROM fecha), el resultado unirá las ventas de Mayo 2025 y Mayo 2026 en el mismo bloque (porque ambas son mes 5).
 
+En cambio si agrupas por DATE_TRUNC('month', fecha)
+el motor de SQL no saca un número aislado, sino que congela el año y el mes de ese momento específico en el tiempo y simplemente "reinicia" el día al número 1
+    Un bloque para 2025-05-01 00:00:00 (donde se sumará todo lo de Mayo 2025).
+    Otro bloque para 2026-05-01 00:00:00 (donde se sumará todo lo de Mayo 2026).
 
+Usas DATE_TRUNC cuando quieres ver una línea de tiempo histórica
+Usas EXTRACT(MONTH) cuando quieres analizar estacionalidad
+*/
 
+SELECT
+    id_compra,
+    EXTRACT(MONTH FROM fecha_transaccion) AS mes_transaccion,
+    EXTRACT(YEAR FROM fecha_transaccion) AS año_transaccion
+FROM compras;
 
+SELECT 
+    SUM(monto),
+    DATE_TRUNC('month', fecha_transaccion) AS mes_ventas
+FROM compras
+GROUP BY DATE_TRUNC('month', fecha_transaccion);
 
+SELECT
+    nombre_usuario,
+    fecha_cancelacion - fecha_registro AS dias_activo
+FROM suscripciones
+WHERE fecha_cancelacion IS NOT NULL;
 
-
-
+SELECT
+    FLOOR((fecha_dos - fecha_uno) / 31)
+FROM tabla;
 
 -- Tema 4: Pequeñas consultas o consulta monstruosa.
 /*
@@ -284,8 +346,35 @@ FROM tabla_maestra tm
 LEFT JOIN nuevas_metricas_compras c ON tm.id_usuario = c.id_usuario
 LEFT JOIN metrica_visitas v ON tm.id_usuario = v.id_usuario;
 
+-- Tema 5: Modularización Avanzada (Vistas y Vistas Materializadas)
+/*
+Las Vistas Clásicas (CREATE VIEW)
+Una vista es una consulta guardada en la base de datos que se comporta exactamente como si fuera una tabla física.
+¿Qué hace?: Guarda la lógica (el código SQL), no los datos.
+*/
+
+CREATE VIEW vw_empleados_limpios AS
+SELECT id_empleado, UPPER(nombre) AS nombre_limpio, salario
+FROM empleados
+WHERE estatus = 'ACTIVO';
+SELECT * FROM vw_empleados_limpios;
+
+/*
+Vistas Materializadas (CREATE MATERIALIZED VIEW)
+¿Qué hace?: Ejecuta la consulta pesada y guarda físicamente el resultado final en el disco duro.
+
+Ventaja: Las consultas a esta vista tardan milisegundos, porque la matemática pesada ya se hizo y se guardó.
+Desventaja (El Truco): Los datos son una "foto" de ese momento. Si se insertan ventas nuevas, la vista no las tiene hasta que tú ordenes actualizarla con: 
+REFRESH MATERIALIZED VIEW nombre_vista;
+*/
+
+CREATE MATERIALIZED VIEW mv_reporte_ventas_mensual AS
+SELECT DATE_TRUNC('month', fecha) AS mes, SUM(monto) AS total
+FROM ventas_historicas
+GROUP BY DATE_TRUNC('month', fecha);
 
 -- ejercicios del tema actual
+
 
 -- futuros temas
 
@@ -295,8 +384,6 @@ LEFT JOIN metrica_visitas v ON tm.id_usuario = v.id_usuario;
 subconsultas
 JOINS
 Función ventana.
-Subconsultas y Modularización
 CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
 Manipulación de Tipos de Datos
-
 Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
