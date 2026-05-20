@@ -373,17 +373,115 @@ SELECT DATE_TRUNC('month', fecha) AS mes, SUM(monto) AS total
 FROM ventas_historicas
 GROUP BY DATE_TRUNC('month', fecha);
 
--- ejercicios del tema actual
+-- Las vistas deben apuntar a tablas base, nunca a otras vistas.
 
+/*
+Optimizar el refrescado de vistas
+Usar REFRESH MATERIALIZED VIEW mv_top_productos funciona, pero tiene un efecto secundario: bloquea la tabla completa.
+Si la vista tarda 15 minutos en actualizarse, cualquier reporte o usuario que intente leerla durante ese tiempo se quedará congelado o marcará error.
+
+Usa la palabra CONCURRENTLY.
+el motor actualiza los datos en una copia "invisible" y, cuando termina, reemplace los datos en un milisegundo sin interrumpir a nadie.
+Actualiza los datos en segundo plano, pero sigue mostrando los datos viejos a los usuarios hasta que termines, para no interrumpir el servicio
+*/
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_top_productos;
+
+/*
+La sintaxis del horario (Expresión Cron)
+el horario no se escribe en SQL, sino en un formato universal de 5 asteriscos llamado Cron Expression.
+"todos los días a las 3:00 AM exactas", la sintaxis es: 0 3 * * *
+*/
+
+CREATE VIEW vw_clientes_marketing AS 
+SELECT
+    id_cliente, 
+    nombre,
+    email
+FROM clientes
+WHERE categoria = 'Grupo A';
+
+SELECT COUNT(*)
+FROM vw_clientes_marketing;
+
+CREATE MATERIALIZED VIEW mv_top_productos AS
+SELECT
+    id_producto,
+    SUM(ventas) AS ventas_totales
+FROM ventas
+GROUP BY id_producto
+HAVING SUM(ventas) > 100000;
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_top_productos;
+
+-- Tema 6: El Jefe Final de las Subconsultas: EXISTS y Subconsultas UPDATE/DELETE
+/*
+Las subconsultas SQL pueden colocarse en casi cualquier lugar donde se permita una expresión, principalmente en:
+    SELECT, FROM, WHERE y HAVING
+ya sea para filtrar resultados, calcular totales o crear tablas virtuales.
+
+1. Cláusula WHERE
+filtrar el resultado de la consulta principal basándose en los datos que devuelve la subconsulta.
+
+2. Cláusula FROM (Tablas Derivadas)
+la subconsulta actúa como una tabla temporal o "vista en línea". 
+La consulta principal selecciona datos directamente de los resultados que arroja la subconsulta.
+
+3. Cláusula SELECT
+Insertar una subconsulta para que actúe como una columna calculada independiente para cada fila de la consulta principal.
+
+4. Cláusula HAVING
+Se utiliza exactamente igual que en la cláusula WHERE, pero se aplica específicamente después de haber agrupado los datos con GROUP BY.
+
+5. Otras cláusulas (INSERT, UPDATE, DELETE)
+Las subconsultas no son exclusivas de SELECT. También se pueden usar para modificar datos en bloque
+*/
+
+/*
+1. El Rey del Rendimiento: EXISTS (vs. IN)
+Cuando quieres saber si un cliente tiene pedidos, normalmente usas WHERE id_cliente IN (SELECT id_cliente FROM pedidos).
+IN primero construye toda la lista temporal de la subconsulta en memoria y luego compara.
+*/
+
+-- ALTERNATIVA EXISTS:
+SELECT nombre 
+FROM clientes c
+WHERE EXISTS (
+    SELECT 1 
+    FROM pedidos p 
+    WHERE c.id_cliente = p.id_cliente
+);
+
+/*
+En el momento en que encuentra un solo pedido para ese cliente, detiene la búsqueda y devuelve TRUE. No le importa si el cliente tiene 1 pedido o 10,000.
+Como a EXISTS solo le importa si la fila existe o no, no necesitamos traer ninguna columna real, poner 1 es el estándar de la industria.
+*/
+
+/*
+2. NOT EXISTS: El Auditor de Datos
+Es la forma más segura y rápida de encontrar registros "huérfanos", evitando la trampa de los NULLs que tiene NOT IN
+*/ 
+
+-- "Dame los clientes que NO han comprado nada"
+SELECT nombre 
+FROM clientes c
+WHERE NOT EXISTS (
+    SELECT 1 FROM pedidos p WHERE c.id_cliente = p.id_cliente
+);
+
+
+-- ejercicios del tema actual
 
 -- futuros temas
 
 
-
-
-subconsultas
+que es un índice único creado y como hacerlo
 JOINS
 Función ventana.
 CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
 Manipulación de Tipos de Datos
 Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
+
+/*
+
+*/
