@@ -469,13 +469,144 @@ WHERE NOT EXISTS (
     SELECT 1 FROM pedidos p WHERE c.id_cliente = p.id_cliente
 );
 
+/*
+3. Subconsultas destructivas: UPDATE y DELETE
+actualizar una tabla usando reglas que viven en otra tabla. 
+Aquí, la subconsulta correlacionada es tu única opción estándar.
+*/
+
+UPDATE clientes
+SET estatus = 'VIP'
+WHERE id_cliente IN (
+    SELECT id_cliente 
+    FROM ventas 
+    GROUP BY id_cliente 
+    HAVING SUM(monto) > 10000
+);
+
+-- El secreto para cambiar de IN a EXISTS es que necesitas crear un "puente" (una subconsulta correlacionada) que conecte la tabla de afuera (clientes) con la tabla de adentro (ventas).
+UPDATE clientes
+SET estatus = 'VIP'
+WHERE EXISTS (
+    SELECT 1 
+    FROM ventas 
+    WHERE ventas.id_cliente = clientes.id_cliente -- ¡Este es el puente!
+    GROUP BY ventas.id_cliente 
+    HAVING SUM(ventas.monto) > 10000
+);
+
+/*
+ALERTA DE PRODUCCIÓN: El DELETE sin piedad
+Al usar subconsultas en un DELETE, un error lógico borra millones de registros
+
+Si la tabla pedidos está temporalmente vacía o la subconsulta devuelve un NULL, puedes vaciar tu tabla de clientes entera.
+Siempre prueba tu subconsulta con un SELECT antes de cambiar la palabra por DELETE.
+*/
+
+-- Ejemplo con NOT IN 
+DELETE FROM clientes WHERE id_cliente NOT IN (SELECT id_cliente FROM pedidos);
+
+-- Ejemplo con IN
+SELECT nombre_producto 
+FROM productos 
+WHERE id_producto IN 
+    (SELECT id_producto FROM inventario WHERE cantidad > 0);
+
+/*
+Orden de colocacion de las tablas.
+El orden influye, pudiendo cambiar por completo el resultado final de tu consulta.
+la tabla que pones "afuera" (la consulta principal) y la que pones "adentro" (la subconsulta) tienen roles completamente diferentes.
+
+    La tabla de AFUERA dicta QUÉ es lo que vas a devolver, actualizar o borrar.
+    La tabla de ADENTRO es solo el FILTRO (la condición que debe cumplirse).
+
+1. En un UPDATE o DELETE
+Si quieres actualizar el estatus de algun campo en cierta tabla, la tabla tiene que estar afuera obligatoriamente.
+
+2. En un SELECT (El impacto en los resultados)
+Si solo estás consultando datos, el orden cambia drásticamente lo que ves en la pantalla.
+*/
+
+-- Escenario A: clientes afuera, ventas adentro (clientes que han comprado al menos una vez)
+SELECT nombre_cliente 
+FROM clientes 
+WHERE EXISTS (
+    SELECT 1 FROM ventas WHERE ventas.id_cliente = clientes.id_cliente
+);
+
+-- Escenario B: ventas afuera, clientes adentro (odas las ventas que pertenezcan a un cliente)
+SELECT id_ticket, monto 
+FROM ventas 
+WHERE EXISTS (
+    SELECT 1 FROM clientes WHERE clientes.id_cliente = ventas.id_cliente
+);
+
+
+SELECT p.nombre_producto 
+FROM productos p
+WHERE EXISTS (
+    SELECT 1 
+    FROM inventario i
+    WHERE i.id_producto = p.id_producto 
+    AND i.cantidad > 0
+);
+
+SELECT e.nombre
+FROM empleados e
+WHERE NOT EXISTS 
+(
+    SELECT 1
+    FROM asignaciones_proyecto a
+    WHERE e.id_empleado = a.id_empleado
+);
+
+UPDATE productos p --tabla a actualizar
+SET precio = precio * 1.20 -- precio arriba un 20%
+WHERE EXISTS (
+    SELECT 1 
+    FROM categorias c
+    WHERE p.id_categoria = c.id_categoria AND c.nombre_categoria = 'Electrónica'
+);
+
+/*
+El Misterio Lógico: ¿Qué pasa cuando el WHERE recibe un NULL o una tabla vacía?
+En SQL existe algo llamado Lógica de Tres Valores (3VL).
+    Verdadera (TRUE) 
+    Falsa (FALSE)
+    Desconocida (UNKNOWN) -- ocurre cuando involucras un NULL.
+
+La cláusula WHERE deja pasar una fila ÚNICAMENTE si la condición se evalúa como estrictamente TRUE. 
+Si la condición da FALSE o UNKNOWN, la fila se rechaza.
+
+Escenario A: La subconsulta devuelve una tabla totalmente vacía.
+    El motor se pregunta: "¿El usuario 1 está en esta lista vacía?"
+    La respuesta lógica es: "No, no está". Por lo tanto, NOT IN (vacio) es estrictamente TRUE.
+    El Desastre: Como es TRUE para todos, el DELETE borra a todos los usuarios de tu base de datos.
+
+Escenario B: La subconsulta devuelve una lista con números, pero incluye un NULL (ej. 1, 2, NULL).
+    El motor traduce el NOT IN a múltiples AND: id != 1 AND id != 2 AND id != NULL.
+    Cuando evalúa id != NULL, el resultado es UNKNOWN (porque no puedes comparar nada contra lo desconocido).
+    En lógica, TRUE AND TRUE AND UNKNOWN da como resultado final UNKNOWN.
+    La Salvación Inesperada: Como el WHERE exige un TRUE estricto y recibió un UNKNOWN, rechaza la fila. No se borra absolutamente nada.
+*/
+
+DELETE FROM usuarios 
+    WHERE id_usuario NOT IN (SELECT id_usuario FROM historial_compras);
+
+-- Tema 7: Índices Únicos (UNIQUE INDEX)
+/*
+1. ¿Qué es un Índice en SQL?
+
+
+*/
+
+
 
 -- ejercicios del tema actual
 
 -- futuros temas
 
 
-que es un índice único creado y como hacerlo
 JOINS
 Función ventana.
 CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
