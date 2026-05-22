@@ -596,18 +596,129 @@ DELETE FROM usuarios
 -- Tema 7: Índices Únicos (UNIQUE INDEX)
 /*
 1. ¿Qué es un Índice en SQL?
+Imagina un libro de texto de 1,000 páginas. Si te pido que busques la palabra "Algoritmo", tendrías que leer el libro entero página por página (en SQL, esto se llama Full Table Scan, y es lento).
+Pero si el libro tiene un Índice al final, vas directamente a la "A", buscas la palabra, y el índice te dice exactamente: "Página 450".
 
-
+En SQL, un Índice es una estructura de datos oculta (generalmente un Árbol-B) que guarda referencias rápidas a las filas físicas.
 */
 
+/*
+2. Cómo crear un índice normal (No Único)
+Un índice normal (no único) sirve para decirle a la base de datos: "Voy a buscar información por esta columna muy seguido, por favor organízala como el índice de un libro para que la encuentres más rápido".
 
+¿A qué columnas se les pone un índice normal?
+    A las que usas mucho después del WHERE (ej. fechas, estatus, país).
+    A las que usas para conectar tablas en los JOIN (las llaves foráneas).
+    A las que usas frecuentemente en el ORDER BY.
+*/
 
+CREATE INDEX idx_estatus_cliente 
+ON clientes (estatus); -- En qué tabla y a qué columna se lo vas a aplicar.
+
+/*
+3. ¿Qué es un Índice ÚNICO (UNIQUE INDEX)?
+cumple dos funciones al mismo tiempo:
+    - Acelera las búsquedas drásticamente.
+    - Impone una regla de integridad (Constraint): Le prohíbe a la base de datos aceptar dos filas que tengan el mismo valor en esa columna.
+
+Cuando creas una PRIMARY KEY, el motor de la base de datos crea un UNIQUE INDEX en esa columna automáticamente.
+*/
+
+-- Crear un índice único en una sola columna (Ej. Emails que no pueden repetirse)
+CREATE UNIQUE INDEX nombre_del_indice 
+ON nombre_tabla (nombre_columna);
+
+-- Crear un índice único compuesto (Ej. Un usuario solo puede votar una vez por cada encuesta)
+CREATE UNIQUE INDEX idx_votos_unicos 
+ON votos (id_usuario, id_encuesta);
+
+/*
+Por qué CONCURRENTLY lo necesita (Requiere un índice ÚNICO)
+Cuando le dices a la Vista Materializada que se actualice "en caliente" (sin bloquear a los usuarios)
+el motor necesita comparar la "foto vieja" de los datos con la "foto nueva" para saber exactamente qué filas actualizar, cuáles borrar y cuáles insertar.
+
+Para hacer ese emparejamiento fila por fila de forma perfecta y sin equivocarse, necesita un Índice Único que le garantice que está actualizando exactamente la fila correcta.
+
+¿Cómo saber a qué columna ponerle el índice único en tu vista?
+Depende totalmente de cómo construiste tu vista (mv_top_productos). Tienes que buscar la columna (o combinación de columnas) que jamás se repita en esa vista.
+*/
+
+CREATE UNIQUE INDEX idx_unico_mv_producto 
+ON mv_top_productos (id_producto); -- Si tu vista tiene una fila por cada producto, la columna única es el ID del producto.
+
+CREATE UNIQUE INDEX idx_unico_mv_tienda_mes 
+ON mv_top_productos (id_tienda, mes);
+-- Si tu vista está agrupada por tienda y por mes, ni la tienda ni el mes son únicos por sí solos
+-- Aquí necesitas un índice compuesto por las columnas que usaste en tu GROUP BY.
+
+-- El flujo de trabajo completo en la vida real:
+
+-- 1. Creas la vista:
+CREATE MATERIALIZED VIEW mv_top_productos AS 
+SELECT id_producto, SUM(ventas) FROM compras GROUP BY id_producto;
+
+-- 2. Le aplicas el índice ÚNICO (solo se hace una vez):
+CREATE UNIQUE INDEX idx_mv_id_producto ON mv_top_productos (id_producto);
+
+-- 3. Actualizado:
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_top_productos;
+
+CREATE UNIQUE INDEX idx_empleados_curp
+ON empleados (curp);
+
+CREATE UNIQUE INDEX idx_cursos_alumnos
+ON inscripciones_cursos (id_curso, id_estudiante);
+
+CREATE UNIQUE INDEX  idx_mv_resumen_mes
+ON mv_resumen_mensual (mes_venta);
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_resumen_mensual;
+
+-- Tema 8: JOINs Avanzados (El Siguiente Nivel)
+/*
+1. Self Join (La Tabla que se une a sí misma)
+A veces, los datos relacionales viven en la misma tabla.
+
+El ejemplo clásico es la jerarquía corporativa: tienes una tabla empleados que tiene una columna id_empleado y otra columna id_jefe. 
+(El jefe también es un empleado que vive en esa misma tabla).
+Para que el motor no se confunda, es obligatorio usar alias diferentes para tratar a la tabla como si fueran dos distintas.
+*/
+
+SELECT 
+    trabajador.nombre AS empleado,
+    jefe.nombre AS manager
+FROM empleados trabajador
+-- Unimos la tabla consigo misma
+LEFT JOIN empleados jefe 
+    ON trabajador.id_jefe = jefe.id_empleado;
+-- (Usamos LEFT JOIN porque el Director General (CEO) no tiene jefe, su id_jefe será NULL, y no queremos que desaparezca del reporte).
+
+/*
+2. Non-Equi Join (Uniones sin igualdad)
+Casi siempre usamos el signo igual (=) en la cláusula ON. 
+Pero el álgebra relacional permite usar operadores lógicos (<, >, BETWEEN).
+Cruzar tabla sin un id en comun.
+*/
+
+SELECT 
+    v.id_venta, 
+    v.fecha_venta, 
+    p.nombre_promo
+FROM ventas v
+-- La condición no es un ID, es un rango de tiempo
+LEFT JOIN promociones p 
+    ON v.fecha_venta BETWEEN p.fecha_inicio AND p.fecha_fin;
+
+/*
+3. Anti Join (El filtro de exclusión por estructura)
+*/
 -- ejercicios del tema actual
+
+
 
 -- futuros temas
 
 
-JOINS
+
 Función ventana.
 CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
 Manipulación de Tipos de Datos
