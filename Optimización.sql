@@ -697,6 +697,9 @@ LEFT JOIN empleados jefe
 Casi siempre usamos el signo igual (=) en la cláusula ON. 
 Pero el álgebra relacional permite usar operadores lógicos (<, >, BETWEEN).
 Cruzar tabla sin un id en comun.
+
+Tienes una tabla de ventas (con id_venta y fecha_venta) y una tabla de promociones (con nombre_promo, fecha_inicio, fecha_fin). 
+Quieres cruzar las ventas con la promoción que estaba activa en ese momento.
 */
 
 SELECT 
@@ -710,13 +713,124 @@ LEFT JOIN promociones p
 
 /*
 3. Anti Join (El filtro de exclusión por estructura)
+Consiste en unir todo, pero luego filtrar explícitamente los nulos de la tabla derecha.
+(Aunque NOT EXISTS suele ser más rápido en bases de datos modernas, el Anti-Join es un patrón clásico que debes saber leer si lo encuentras en código heredado).
 */
+
+-- Queremos clientes que NUNCA han comprado
+SELECT c.nombre
+FROM clientes c
+LEFT JOIN pedidos p ON c.id_cliente = p.id_cliente
+WHERE p.id_pedido IS NULL; -- "Solo quédate con los que no encontraron pareja en la derecha"
+
+/*
+Hacer un JOIN usando BETWEEN o < / > es muy pesado para el procesador. 
+Como el motor no puede buscar un "hash" o valor exacto, muchas veces recurre a comparar enormes bloques de filas secuencialmente.
+*/
+
+SELECT
+    usuario.nombre AS usuario_nuevo,
+    embajador.nombre AS embajador
+FROM usuarios usuario
+LEFT JOIN usuarios embajador
+    ON usuario.id_quien_lo_invito = embajador.id_usuario;
+
+SELECT 
+    a.nombre,
+    a.calificacion,
+    c.letra
+FROM alumnos a
+INNER JOIN catalogo_notas c
+    ON a.calificacion BETWEEN c.rango_min AND c.rango_max;
+
+SELECT
+    p.id_producto,
+    p.nombre
+FROM productos p
+LEFT JOIN ventas v
+    ON p.id_producto = v.id_producto
+WHERE v.id_venta IS NULL;
+
+
 -- ejercicios del tema actual
 
+/*
+id_entrevista_previa (que está en NULL si es la primera llamada de RH, pero tiene el ID de una entrevista anterior si pasaste a la ronda técnica)
+*/
+SELECT
+    e1.empresa, 
+    e1.fecha_entrevista AS fecha_actual,
+    e2.fecha_entrevista AS fecha_previa
+FROM entrevistas e1
+INNER JOIN entrevistas e2
+    ON e1.id_entrevista_previa = e2.id_entrevista;
+
+SELECT
+FROM
+JOIN
+    ON
+
+SELECT
+FROM
+JOIN
+    ON
+
+SELECT
+FROM
+JOIN
+    ON
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Tema 9: ¿Qué es el "Código Heredado" (Legacy Code)?
+/*
+Suele ser código antiguo, muchas veces sin documentar, que "funciona por milagro" y que a todos les da miedo modificar porque si se rompe, se cae el sistema
+tu trabajo inicial será leer este código heredado, entenderlo y modernizarlo (refactorizarlo).
+*/
+
+-- Tema 10: ¿Qué significa "columnas indexadas" para rangos?
+/*
+Un índice en una base de datos es como el índice alfabético al final de un libro.
+Si haces un JOIN usando un signo igual (=), el motor va al índice, busca el número exacto y termina en un milisegundo.
+
+Pero si haces un JOIN usando BETWEEN (un Non-Equi Join), el motor tiene que buscar el límite inferior, el límite superior, y extraer todo lo que hay en medio.
+*/
 
 
 -- futuros temas
-
 
 
 Función ventana.
