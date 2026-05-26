@@ -751,9 +751,6 @@ LEFT JOIN ventas v
     ON p.id_producto = v.id_producto
 WHERE v.id_venta IS NULL;
 
-
--- ejercicios del tema actual
-
 /*
 id_entrevista_previa (que está en NULL si es la primera llamada de RH, pero tiene el ID de una entrevista anterior si pasaste a la ronda técnica)
 */
@@ -765,55 +762,43 @@ FROM entrevistas e1
 INNER JOIN entrevistas e2
     ON e1.id_entrevista_previa = e2.id_entrevista;
 
-SELECT
-FROM
-JOIN
-    ON
+/*
+Es súper lógico pensar: "Si es la misma tabla, y es la misma columna, me tiene que dar la misma fecha, ¿no?"
+La respuesta es no, y el secreto está en que el JOIN obliga a las tablas a "desfasarse" o mezclarse entre diferentes filas.
+
+El truco de magia ocurre por tu condición: ON e1.id_entrevista_previa = e2.id_entrevista.
+SQL toma la copia e1, revisa fila por fila y busca a su pareja en la copia e2.
+*/
 
 SELECT
-FROM
-JOIN
-    ON
+    v.id_producto,
+    v.cantidad_vendida,
+    r.etiqueta
+FROM ventas v
+JOIN reglas_demanda r
+    ON v.cantidad_vendida BETWEEN r.limite_inferior AND r.limite_superior
+
+-- segun el rango se le asignara alguna etiqueta
 
 SELECT
-FROM
-JOIN
-    ON
+    e.nombre
+FROM empresas_guardadas e
+LEFT JOIN aplicaciones_enviadas a
+    ON e.id_empresa = a.id_empresa
+WHERE a.id_aplicacion IS NULL;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+SELECT
+c.id_compra, 
+c.fecha_compra, 
+c.monto_total,
+m.objetivo_monetario,
+CASE 
+    WHEN c.monto_total > m.objetivo_monetario THEN 'Venta Atípica'
+    ELSE 'Venta Normal'
+END AS venta
+FROM compras c
+JOIN metas_mensuales m
+    ON c.fecha_compra BETWEEN m.mes_inicio AND m.mes_fin;
 
 -- Tema 9: ¿Qué es el "Código Heredado" (Legacy Code)?
 /*
@@ -827,17 +812,4 @@ Un índice en una base de datos es como el índice alfabético al final de un li
 Si haces un JOIN usando un signo igual (=), el motor va al índice, busca el número exacto y termina en un milisegundo.
 
 Pero si haces un JOIN usando BETWEEN (un Non-Equi Join), el motor tiene que buscar el límite inferior, el límite superior, y extraer todo lo que hay en medio.
-*/
-
-
--- futuros temas
-
-
-Función ventana.
-CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
-Manipulación de Tipos de Datos
-Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
-
-/*
-
 */
