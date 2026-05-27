@@ -276,3 +276,45 @@ FROM STATION
 WHERE LAT_N > 38.7780
 ORDER BY LAT_N ASC
 LIMIT 1;
+
+/*
+Query an alphabetically ordered list of all names in OCCUPATIONS, immediately followed by the first letter of each profession as a parenthetical (i.e.: enclosed in parentheses). For example: AnActorName(A), ADoctorName(D), AProfessorName(P), and ASingerName(S).
+Query the number of ocurrences of each occupation in OCCUPATIONS. Sort the occurrences in ascending order, and output them in the following format:
+There are a total of [occupation_count] [occupation]s.
+where [occupation_count] is the number of occurrences of an occupation in OCCUPATIONS and [occupation] is the lowercase occupation name. If more than one Occupation has the same [occupation_count], they should be ordered alphabetically.
+*/
+
+SELECT 
+    CONCAT(Name, '(',  LEFT(Occupation, 1) , ')') AS resultado
+FROM OCCUPATIONS
+ORDER BY Name ASC;
+
+SELECT
+    CONCAT('There are a total of ', COUNT(Occupation), ' ', LOWER(Occupation),'s.' ) AS occupation_count
+FROM OCCUPATIONS
+GROUP BY Occupation
+ORDER BY occupation_count ASC, Occupation ASC;
+
+/*
+Pivot the Occupation column in OCCUPATIONS so that each Name is sorted alphabetically and displayed underneath its corresponding Occupation. The output should consist of four columns (Doctor, Professor, Singer, and Actor) in that specific order, with their respective names listed alphabetically under each column.
+*/
+/*
+Enter your query here.
+*/
+
+WITH DatosNumerados AS (
+    SELECT 
+        Name,
+        Occupation,
+        ROW_NUMBER() OVER(PARTITION BY Occupation ORDER BY Name) AS fila
+    FROM OCCUPATIONS 
+)
+
+SELECT 
+    MAX(CASE WHEN Occupation = 'Doctor' THEN Name END) AS Doctor,
+    MAX(CASE WHEN Occupation = 'Professor' THEN Name END) AS Professor,
+    MAX(CASE WHEN Occupation = 'Singer' THEN Name END) AS Singer, 
+    MAX(CASE WHEN Occupation = 'Actor' THEN Name END) AS Actor
+
+FROM DatosNumerados
+GROUP BY fila;
