@@ -154,34 +154,117 @@ FROM ventas;
 -- En el estándar SQL, ningún nombre de columna o alias puede empezar con un número.
 
 -- Tema 2: PIVOT y Agregación Condicional (De Filas a Columnas)
-/*
-Convertir filas en columnas se conoce como Pivoteo (Pivoting).
 
+-- Convertir filas en columnas se conoce como Pivoteo (Pivoting).
+/*
+El Método Universal: Agregación Condicional
+Consiste en combinar GROUP BY con funciones de agregación (SUM, COUNT, MAX) y la sentencia CASE WHEN en su interior.
+
+El GROUP BY colapsa todos los registros de un mismo mes en una sola fila.
+SQL solo suma el monto si la categoría coincide con la columna que estamos construyendo; de lo contrario, suma 0 (lo que no afecta el total).
 */
 
+SELECT 
+    mes,
+    -- Creamos la columna para Electrónica
+    SUM(CASE WHEN categoria = 'Electrónica' THEN monto ELSE 0 END) AS total_electronica,
+    -- Creamos la columna para Ropa
+    SUM(CASE WHEN categoria = 'Ropa' THEN monto ELSE 0 END) AS total_ropa,
+    -- Creamos la columna para Alimentos
+    SUM(CASE WHEN categoria = 'Alimentos' THEN monto ELSE 0 END) AS total_alimentos
+FROM ventas
+GROUP BY mes;
+
+WITH DatosNumerados AS (
+    SELECT 
+        Name,
+        Occupation,
+        ROW_NUMBER() OVER(PARTITION BY Occupation ORDER BY Name) AS fila
+    FROM OCCUPATIONS 
+)
+SELECT 
+    MAX(CASE WHEN Occupation = 'Doctor' THEN Name END) AS Doctor,
+    MAX(CASE WHEN Occupation = 'Professor' THEN Name END) AS Professor,
+    MAX(CASE WHEN Occupation = 'Singer' THEN Name END) AS Singer, 
+    MAX(CASE WHEN Occupation = 'Actor' THEN Name END) AS Actor
+FROM DatosNumerados
+GROUP BY fila;
+
+/*
+La Cláusula Nativa PIVOT (Específica de algunos motores)
+requiere que primero aísles exactamente las columnas que vas a usar (usualmente mediante un CTE o subconsulta).
+*/
+
+-- Sintaxis en SQL Server / Snowflake
+SELECT mes, [Electrónica], [Ropa], [Alimentos]
+FROM (
+    -- 1. Los datos crudos que vamos a usar
+    SELECT mes, categoria, monto 
+    FROM ventas
+) AS datos_origen
+PIVOT (
+    -- 2. La función de agregación y las columnas que queremos crear
+    SUM(monto) FOR categoria IN ([Electrónica], [Ropa], [Alimentos])
+) AS tabla_pivote;
+
+/*
+Tanto en la Agregación Condicional como en el operador PIVOT, tienes que codificar las columnas a mano (Hardcoding).}
+En SQL puro no se puede hacer un pivot dinámico (que cree las columnas automáticamente según los datos) sin usar SQL Dinámico (escribir un script que concatena strings de texto y los ejecuta como código)
+
+SQL Dinámico es lento y peligroso por posibles inyecciones SQL.
+
+¿Qué pasa si solo usas algunas filas y dejas otras fuera? ¿Marca error?
+La respuesta es un rotundo NO
+las filas que no incluiste en tus CASE WHEN simplemente serán ignoradas y desaparecerán de tu resultado final.
+*/
+
+-- La funcion de agregacion es obligatoria en un pivot
+-- Si usas un GROUP BY, cualquier columna en tu SELECT que no esté en el GROUP BY tiene que estar envuelta en una función matemática
+
+-- case when puede estar sin ella si solo es una condicional
+
+SELECT 
+    nombre_cliente,
+    edad,
+    -- Evalúa fila por fila, sin agrupar nada
+    CASE 
+        WHEN edad < 18 THEN 'Menor de edad'
+        WHEN edad BETWEEN 18 AND 65 THEN 'Adulto'
+        ELSE 'Tercera edad' 
+    END AS categoria_edad
+FROM clientes;
+
+SELECT 
+id_vendedor,
+SUM(CASE WHEN estatus_pedido = 'Entregado' THEN 1 ELSE 0 END) AS total_e,
+SUM(CASE WHEN estatus_pedido = 'Cancelado' THEN 1 ELSE 0 END) AS total_c,
+SUM(CASE WHEN estatus_pedido = 'Pendiente' THEN 1 ELSE 0 END) AS total_p
+FROM pedidos
+GROUP BY id_vendedor;
+
+SELECT
+departamento,
+AVG(CASE WHEN genero = 'F' THEN salario ELSE NULL END) AS promedio_F,
+AVG(CASE WHEN genero = 'M' THEN salario ELSE NULL END) AS promedio_M
+FROM empleados
+GROUP BY departamento;
+-- no debes usar 0, debes usar NULL para no arruinar el promedio matemático
+
+SELECT 
+id_cliente,
+SUM(CASE WHEN trimestre = 'Q1' THEN total_facturado ELSE 0 END) AS trimestre_1,
+SUM(CASE WHEN trimestre = 'Q2' THEN total_facturado ELSE 0 END) AS trimestre_2,
+SUM(CASE WHEN trimestre = 'Q3' THEN total_facturado ELSE 0 END) AS trimestre_3,
+SUM(CASE WHEN trimestre = 'Q4' THEN total_facturado ELSE 0 END) AS trimestre_4
+FROM facturacion
+GROUP BY id_cliente;
+
+-- Tema 3: CTEs Recursivos (WITH RECURSIVE)
+Un CTE Recursivo es un bucle (loop) dentro de SQL que genera datos de la nada o recorre jerarquías profundas llamándose a sí mismo repetidamente hasta que se cumple una condición de salida.
+
+
+
 -- ejercicios del tema actual
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -201,28 +284,8 @@ Convertir filas en columnas se conoce como Pivoteo (Pivoting).
 
 
 
-WITH DatosNumerados AS (
-    SELECT 
-        Name,
-        Occupation,
-        ROW_NUMBER() OVER(PARTITION BY Occupation ORDER BY Name) AS fila
-    FROM OCCUPATIONS 
-)
-
-SELECT 
-    MAX(CASE WHEN Occupation = 'Doctor' THEN Name END) AS Doctor,
-    MAX(CASE WHEN Occupation = 'Professor' THEN Name END) AS Professor,
-    MAX(CASE WHEN Occupation = 'Singer' THEN Name END) AS Singer, 
-    MAX(CASE WHEN Occupation = 'Actor' THEN Name END) AS Actor
-
-FROM DatosNumerados
-GROUP BY fila;
 
 
-CTEs (Common Table Expressions): Aprender a usar WITH. Es mucho más limpio y profesional que las subconsultas anidadas.
+
 Manipulación de Tipos de Datos
 Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
-
-/*
-
-*/
