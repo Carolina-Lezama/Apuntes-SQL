@@ -117,9 +117,6 @@ SELECT
     NTILE(4) OVER(ORDER BY total_gastado DESC) AS cuartil
 FROM clientes;
 
-
--- ejercicios del tema actual
-
 SELECT
     fecha,
     cantidad,
@@ -128,23 +125,43 @@ FROM movimientos_almacen;
 
 SELECT
     fecha,
-    num_visitas
+    num_visitas,
     AVG(num_visitas) OVER(ORDER BY fecha ASC
         ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
-    ) AS 7_dias_promedio
+    ) AS promedio_7_dias
 FROM visitas_diarias;
 
 /*
 Se usa ASC (Ascendente) porque un Promedio Móvil necesita viajar en la misma dirección que el flujo del tiempo (del pasado hacia el presente).
-Estarías calculando el promedio de ventas usando datos que, en la vida real, ¡aún no habían ocurrido!
-
+Si usaras DESC estarías calculando el promedio de ventas usando datos que, en la vida real, ¡aún no habían ocurrido!
 */
 
 SELECT
-FROM  ;
+id_jugador,
+score_total,
+NTILE (10) OVER(ORDER BY score_total DESC) AS niveles
+FROM jugadores;
 
 SELECT
-FROM  ;
+id_vendedor,
+mes,
+ingresos,
+    MAX(ingresos) OVER(PARTITION BY id_vendedor ORDER BY mes ASC
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) AS max_3_meses
+FROM ventas;
+
+-- En el estándar SQL, ningún nombre de columna o alias puede empezar con un número.
+
+-- Tema 2: PIVOT y Agregación Condicional (De Filas a Columnas)
+/*
+Convertir filas en columnas se conoce como Pivoteo (Pivoting).
+
+*/
+
+-- ejercicios del tema actual
+
+
 
 
 
@@ -182,10 +199,7 @@ FROM  ;
 -- futuros temas
 
 
-pivot usar celdas como columnas, condicional de agregacion
-/*
-Enter your query here.
-*/
+
 
 WITH DatosNumerados AS (
     SELECT 

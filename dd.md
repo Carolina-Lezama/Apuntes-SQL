@@ -13,6 +13,7 @@ manejo de grandes datasets
 Pipelines de Scikit-Learn Media-Alta Esencial para que tu código sea profesional, reproducible y esté listo para producción.
 Despliegue (MLOps) Media Valioso, pero usualmente es el siguiente paso una vez que ya dominas la creación de modelos sólidos.
 Semana 4: Empaqueta uno de tus proyectos anteriores (el de Churn, por ejemplo) en un Pipeline de Sklearn y crea un endpoint sencillo con FastAPI.
+datos en AWS (S3, RDS) o Google Cloud Platform (BigQuery) te dará mucha ventaja.
 # HABILIDADES ANALISTA
 Tableau
 Insight importante (esto te va a servir mucho)
