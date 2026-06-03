@@ -260,13 +260,58 @@ FROM facturacion
 GROUP BY id_cliente;
 
 -- Tema 3: CTEs Recursivos (WITH RECURSIVE)
+/*
 Un CTE Recursivo es un bucle (loop) dentro de SQL que genera datos de la nada o recorre jerarquías profundas llamándose a sí mismo repetidamente hasta que se cumple una condición de salida.
+
+Anatomía de la Recursividad
+1. El punto de partida. La fila número 1.
+2. El query que hace referencia al propio nombre del CTE para generar la siguiente fila basándose en la anterior.
+3. Un filtro WHERE en el miembro recursivo para evitar que el bucle sea infinito.
+
+Todas unidas obligatoriamente por un UNION ALL.
+*/
+
+-- Generar Series (Dimensión de Tiempo)
+-- Generar los números del 1 al 5
+WITH RECURSIVE Numeros AS (
+    SELECT 1 AS contador -- Empezamos con el número 1
+    UNION ALL
+    SELECT contador + 1  -- Le sumamos 1 al número anterior
+    FROM Numeros 
+    WHERE contador < 5 -- condicional para terminar el ciclo
+)
+SELECT * FROM Numeros;
+
+/*
+Cuando usas UNION o UNION ALL para pegar dos resultados uno debajo del otro, ambas consultas deben tener exactamente la misma cantidad de columnas.
+Si olvidas escribir correctamente la condición del WHERE en el miembro recursivo, consumira RAM hasta tumbar todo
+*/
+
+-- Navegar Jerarquías (Árboles Organizacionales)
+WITH RECURSIVE Jerarquia AS (
+    -- Encontrar al CEO (el que no tiene jefe)
+    SELECT id_empleado, nombre, 1 AS nivel, 'Sin Jefe' AS nombre_jefe -- Estás inventando una columna nueva y otorgando un valor
+    FROM empleados
+    WHERE id_jefe IS NULL
+    UNION ALL
+    -- Unir a los subordinados con sus jefes
+    SELECT e.id_empleado, e.nombre, j.nivel + 1, j.nombre AS nombre_jefe
+    FROM empleados e
+    INNER JOIN Jerarquia j ON e.id_jefe = j.id_empleado
+)
+SELECT * FROM Jerarquia ORDER BY nivel;
 
 
 
 -- ejercicios del tema actual
-
-
+WITH RECURSIVE CuentaAtras AS (
+    SELECT 10 AS numero
+    UNION ALL
+    SELECT contador - 1
+    FROM CuentaAtras
+    WHERE numero = 0
+)
+SELECT * FROM CuentaAtras;
 
 
 
