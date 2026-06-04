@@ -301,22 +301,83 @@ WITH RECURSIVE Jerarquia AS (
 )
 SELECT * FROM Jerarquia ORDER BY nivel;
 
-
-
--- ejercicios del tema actual
 WITH RECURSIVE CuentaAtras AS (
     SELECT 10 AS numero
     UNION ALL
-    SELECT contador - 1
+    SELECT numero - 1
     FROM CuentaAtras
-    WHERE numero = 0
+    WHERE numero > 0
 )
 SELECT * FROM CuentaAtras;
 
+WITH RECURSIVE Inversion AS (
+    SELECT
+    1 AS mes,
+    1000 AS capital
+    UNION ALL
+    SELECT 
+    mes + 1,
+    capital * 1.05
+    FROM Inversion
+    WHERE mes < 7 -- para que muestre el mes 6
+)
 
+WITH RECURSIVE Calendario AS (
+    SELECT '2026-06-01'::DATE AS fecha_dia
+    UNION ALL
+    SELECT fecha_dia + INTERVAL '1 day'
+    FROM Calendario
+    WHERE fecha_dia < '2026-07-01'::DATE
+)
+SELECT * FROM Calendario;
 
+/*
+En SQL, el WHERE de un CTE recursivo no significa "detente cuando esto pase" (Until). 
+Significa "continúa MIENTRAS esto sea verdad" (While).
+*/
 
+-- Tema 4: Funciones de String y Manejo de Nulos
 
+/*
+CONCAT(): Uniendo cadenas de texto
+    Sintaxis: CONCAT(columna1, ' ', columna2)
+
+El Estándar ANSI (||): En motores como PostgreSQL, el operador oficial es la doble barra vertical.
+*/
+
+SELECT nombre || ' ' || apellido AS nombre_completo FROM usuarios;
+SELECT CONCAT(nombre, ' ', apellido) AS nombre_completo FROM usuarios;
+
+/*
+SUBSTR() o SUBSTRING(): Extrayendo fragmentos
+    Sintaxis: SUBSTR(columna, posicion_inicio, cantidad_caracteres)
+En SQL, los índices de texto empiezan en 1
+*/
+
+-- Extrae los primeros 3 caracteres del teléfono (ej. '555-1234' -> '555')
+SELECT SUBSTR(telefono, 1, 3) AS codigo_area FROM contactos;
+
+/*
+Evalúa una lista de valores y devuelve el PRIMERO que no sea NULL.
+Es el estándar absoluto para la imputación de datos.
+    Sintaxis: COALESCE(opcion1, opcion2, opcion3, ...)
+*/
+-- Si el cliente no tiene celular, muestra el teléfono fijo. Si tampoco tiene, muestra 'Sin contacto'.
+SELECT COALESCE(celular, telefono_fijo, 'Sin contacto') AS medio_contacto 
+FROM clientes;
+
+/*
+CONCAT y el Veneno del NULL
+En SQL, si intentas concatenar un texto con un NULL usando ||, el resultado entero se convierte en NULL.
+    ('Hola ' || NULL)
+Perderás toda la informacion
+Para evitarlo, siempre envolver las columnas sospechosas con COALESCE antes de concatenar
+    calle || ', ' || COALESCE(numero_interior, 'S/N')
+
+La función CONCAT() en algunos motores ignora los nulos automáticamente
+*/
+
+-- ejercicios del tema actual
 
 
 
@@ -331,6 +392,6 @@ SELECT * FROM CuentaAtras;
 
 
 
-
+Vistas Materializadas o el Análisis de Planes de Ejecución (EXPLAIN)
 Manipulación de Tipos de Datos
 Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
