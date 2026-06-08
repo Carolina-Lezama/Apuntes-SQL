@@ -379,10 +379,48 @@ La función CONCAT() en algunos motores ignora los nulos automáticamente
 
 -- ejercicios del tema actual
 
+SELECT
+    empresa || ' - ' || puesto AS titulo_tarjeta,
+    COALESCE(notas_reclutador, 'Sin comentarios recientes') AS notas_limpias
+FROM postulaciones;
 
+SELECT
+    SUBSTR(codigo_producto, 5, 4) AS numero_serie
+FROM inventario;
 
+SELECT
+    UPPER(SUBSTR(nombre,1,1)) || SUBSTR(nombre, 2)
+FROM candidatos;
 
+-- Tema 5: El Plan de Ejecución (EXPLAIN y EXPLAIN ANALYZE)
+/*
+Se utiliza para analizar y optimizar el rendimiento de las consultas.
+Se coloca antes de una sentencia (como SELECT, UPDATE o DELETE) para revelar el plan de ejecución, mostrando exactamente cómo el motor de la base de datos procesará la consulta antes de ejecutarla.
 
+Al ejecutar esto, la consulta no trae los datos.
+En su lugar, te devolverá una tabla(bloque de texto) con una serie de pasos que explican la ruta que utilizará para encontrar la información.
+*/
+
+EXPLAIN SELECT * FROM clientes WHERE ciudad = 'Puebla';
+
+EXPLAIN 
+SELECT 
+    nombre, 
+    salario 
+FROM empleados 
+WHERE departamento = 'Ventas';
+
+/*
+EXPLAIN vs EXPLAIN ANALYZE
+
+EXPLAIN a secas: Es una estimación teórica.
+EXPLAIN ANALYZE: Ejecuta la consulta de verdad y te muestra el plan teórico comparado con el tiempo real.
+
+Si usas EXPLAIN ANALYZE con un DELETE o un UPDATE, ¡la base de datos sí modificará los datos reales
+
+Los planes de ejecución se leen como un árbol, normalmente de adentro hacia afuera (o de abajo hacia arriba).
+
+*/
 
 
 -- futuros temas
@@ -392,6 +430,4 @@ La función CONCAT() en algunos motores ignora los nulos automáticamente
 
 
 
-Vistas Materializadas o el Análisis de Planes de Ejecución (EXPLAIN)
 Manipulación de Tipos de Datos
-Funciones de String: CONCAT(), SUBSTR(), COALESCE() (para manejar nulos).
