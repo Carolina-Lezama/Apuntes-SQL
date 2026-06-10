@@ -25,20 +25,7 @@ Excel intermedio/avanzado
 
 
 
-Fase 4:  MLOps (Nivel Experto)
-Pensando en tu interés por despliegue y eficiencia.
-¿te gustaría que nuestro siguiente paso sea adentrarnos en la optimización pura (creación y tipos de Índices) o prefieres aprender sobre programación procedural en SQL (Variables, Ciclos y Procedimientos Almacenados)?
-Rendimiento y Plan de Ejecución
 
-Entender qué es un Índice y cómo acelera las consultas.
-
-Leer un EXPLAIN ANALYZE para identificar cuellos de botella.
-
-Estructuras de Persistencia
-
-CREATE TABLE AS (CTAS) para guardar resultados intermedios.
-
-Diferencia entre Tablas Temporales y Vistas.
 
 ¿Dónde evaluar tus habilidades?
 Te recomiendo estas plataformas según tu progreso:

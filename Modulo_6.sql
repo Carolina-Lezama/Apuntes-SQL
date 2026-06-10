@@ -420,8 +420,38 @@ Si usas EXPLAIN ANALYZE con un DELETE o un UPDATE, ¡la base de datos sí modifi
 
 Los planes de ejecución se leen como un árbol, normalmente de adentro hacia afuera (o de abajo hacia arriba).
 
+En el output verás algo como (cost=0.00..15.35 rows=100).
+El "costo" no son milisegundos. 
+Es un número matemático abstracto que inventó la base de datos midiendo el esfuerzo de CPU y las lecturas de disco.
+
+El motor siempre elegirá el plan que tenga el costo total más bajo.
 */
 
+/*
+Cómo leer un Plan
+
+Seq Scan (Sequential Scan / Table Scan)
+    Significa que el motor tuvo que leer el disco duro fila por fila, buscando coincidencias.
+    Si ves esto en una tabla gigante para buscar a un solo usuario, te falta un índice.
+
+Index Scan
+    El motor usó el árbol del índice (UNIQUE INDEX o PRIMARY KEY). 
+    Fue directo a la página exacta del disco donde estaba el dato. Es instantáneo.
+
+Hash Join 
+    Toma la tabla más pequeña, crea un "diccionario" temporal en la memoria RAM, y luego pasa la tabla grande comparándola contra ese diccionario.
+    Eficiente para datos masivos.
+
+El motor toma la tabla más pequeña (clientes con 10,000 filas) para construir el "diccionario Hash" porque cabe perfectamente en la memoria RAM.
+Una vez construido, pasa la tabla masiva (historial_clicks de 50 millones) como un flujo rápido de datos contra ese diccionario.
+Si el motor intentara hacerlo al revés, colapsaría la memoria del servidor (un error catastrófico conocido como Out Of Memory o OOM).
+
+Nested Loop
+    Hace un bucle for anidado. Toma la primera fila de la Tabla A, y la busca en toda la Tabla B. 
+    Eficiente solo para tablas pequeñas.
+*/
+
+-- Tema 6: El Nivel Final de Tipos de Datos: JSON y Arrays
 
 -- futuros temas
 
@@ -430,4 +460,17 @@ Los planes de ejecución se leen como un árbol, normalmente de adentro hacia af
 
 
 
-Manipulación de Tipos de Datos
+
+Fase 4:  MLOps (Nivel Experto)
+Pensando en tu interés por despliegue y eficiencia.
+¿te gustaría que nuestro siguiente paso sea adentrarnos en la optimización pura (creación y tipos de Índices) o prefieres aprender sobre programación procedural en SQL (Variables, Ciclos y Procedimientos Almacenados)?
+Rendimiento y Plan de Ejecución
+
+Entender qué es un Índice y cómo acelera las consultas.
+
+
+Estructuras de Persistencia
+
+CREATE TABLE AS (CTAS) para guardar resultados intermedios.
+
+Diferencia entre Tablas Temporales y Vistas.
