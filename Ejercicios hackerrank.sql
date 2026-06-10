@@ -318,3 +318,36 @@ SELECT
 
 FROM DatosNumerados
 GROUP BY fila;
+
+/*
+Given the CITY and COUNTRY tables, query the sum of the populations of all cities where the CONTINENT is 'Asia'.
+Note: CITY.CountryCode and COUNTRY.Code are matching key columns.
+*/
+
+SELECT SUM(ci.population)
+FROM CITY ci
+INNER JOIN COUNTRY co
+    ON  ci.CountryCode  = co.Code
+WHERE co.continent = 'Asia';
+
+/*
+Ketty gives Eve a task to generate a report containing three columns: Name, Grade and Mark. 
+Ketty doesn't want the NAMES of those students who received a grade lower than 8. 
+The report must be in descending order by grade -- i.e. higher grades are entered first. 
+If there is more than one student with the same grade (8-10) assigned to them, order those particular students by their name alphabetically. 
+Finally, if the grade is lower than 8, use "NULL" as their name and list them by their grades in descending order. 
+If there is more than one student with the same grade (1-7) assigned to them, order those particular students by their marks in ascending order.
+*/
+
+SELECT 
+    CASE 
+        WHEN gr.Grade >= 8 THEN st.Name 
+        ELSE 'NULL' 
+    END AS Name,
+    gr.Grade, 
+    st.Marks
+FROM Students st
+INNER JOIN Grades gr
+    ON st.Marks BETWEEN gr.min_mark AND gr.max_mark
+ORDER BY gr.Grade DESC, Name ASC, st.Marks ASC; 
+

@@ -452,6 +452,41 @@ Nested Loop
 */
 
 -- Tema 6: El Nivel Final de Tipos de Datos: JSON y Arrays
+/*
+Las bases de datos modernas no solo guardan filas y columnas cuadradas.
+Te permiten guardar listas infinitas y diccionarios completos dentro de una sola celda.
+*/
+
+/*
+1. Manipulación de Arrays (Arreglos)
+Un usuario teniendo múltiples etiquetas, puedes guardar un array directamente
+*/
+
+CREATE TABLE articulos ( -- Creando una tabla con un Array de textos
+    id SERIAL PRIMARY KEY,
+    titulo VARCHAR(100),
+    etiquetas TEXT[] -- ¡Un arreglo dentro de SQL!
+);
+INSERT INTO articulos (titulo, etiquetas) -- Insertando datos
+VALUES ('Machine Learning Básico', ARRAY['Python', 'Data Science', 'SQL']);
+-- Consultando un elemento específico (En SQL los arreglos empiezan en 1)
+SELECT titulo, etiquetas[1] AS etiqueta_principal FROM articulos;
+
+/*
+2. Manipulación de JSON (El puente con tu Backend)
+Cuando consumes información de una API externa, casi siempre viene en formato JSON.
+En lugar de limpiarlos con codigo externo, puedes insertarlos crudos en la bd y extraerlos usando los operadores de flecha.
+    (-> y ->>)
+*/
+
+-- Imagina una celda llamada 'perfil_json' que contiene: 
+-- {"telefono": "555-1234", "notificaciones": true, "redes": {"twitter": "@caro"}}
+-- Extraer un valor como texto (doble flecha)
+SELECT perfil_json->>'telefono' AS telefono_usuario 
+FROM usuarios;
+-- Navegar dentro de objetos anidados (flecha simple para entrar, doble para extraer)
+SELECT perfil_json->'redes'->>'twitter' AS cuenta_twitter 
+FROM usuarios;
 
 -- futuros temas
 
