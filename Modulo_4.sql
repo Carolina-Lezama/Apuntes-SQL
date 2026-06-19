@@ -772,5 +772,4 @@ ON t.id_tienda = v.id_tienda
 /*
 Evitar el SELECT * en uniones finales
 Al usar el asterisco en un JOIN, la base de datos te devolverá ambas columnas de enlace enviando datos duplicados a través de la red
-
 */

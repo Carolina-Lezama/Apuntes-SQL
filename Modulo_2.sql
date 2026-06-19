@@ -401,4 +401,3 @@ SELECT LENGTH(nombre) AS ciudades
 FROM sedes
 WHERE LENGTH(nombre) > 10
 ORDER BY ciudades DESC;
-
