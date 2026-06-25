@@ -485,3 +485,47 @@ LEFT JOIN Employee e
 GROUP BY c.company_code, c.founder
 ORDER BY c.company_code ASC
 
+/*
+Consider  and  to be two points on a 2D plane.
+ happens to equal the minimum value in Northern Latitude (LAT_N in STATION).
+ happens to equal the minimum value in Western Longitude (LONG_W in STATION).
+ happens to equal the maximum value in Northern Latitude (LAT_N in STATION).
+ happens to equal the maximum value in Western Longitude (LONG_W in STATION).
+Query the Manhattan Distance between points  and  and round it to a scale of  decimal places.
+*/
+
+SELECT
+    ROUND((MAX(LAT_N ) - MIN(LAT_N)) + (MAX(LONG_W) - MIN(LONG_W )),4) AS resultado
+FROM station
+
+/*
+Consider  and  to be two points on a 2D plane where  are the respective minimum and maximum values of Northern Latitude (LAT_N) and  are the respective minimum and maximum values of Western Longitude (LONG_W) in STATION.
+Query the Euclidean Distance between points  and  and format your answer to display  decimal digits.
+*/
+
+SELECT
+ROUND(
+    SQRT(
+        (POWER((MAX(LAT_N) - MIN(LAT_N)), 2)) + 
+        (POWER((MAX(LONG_W) - MIN(LONG_W)), 2))
+    )
+    , 4)
+FROM STATION
+
+/*
+A median is defined as a number separating the higher half of a data set from the lower half. 
+Query the median of the Northern Latitudes (LAT_N) from STATION and round your answer to  decimal places.
+*/
+
+WITH agrupamiento AS (
+    SELECT
+    LAT_N,
+    ROW_NUMBER() OVER(ORDER BY LAT_N ) AS fila,
+    COUNT(*) OVER() as total
+    FROM STATION
+)
+
+SELECT
+    ROUND(LAT_N, 4)
+FROM  agrupamiento
+WHERE fila = (total + 1) / 2
