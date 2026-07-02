@@ -636,3 +636,52 @@ INNER JOIN Packages p2
     ON f.Friend_ID = p2.ID
 WHERE p2.Salary > p1.Salary
 ORDER BY p2.Salary
+
+/*
+Samantha interviews many candidates from different colleges using coding challenges and contests. 
+Write a query to print the contest_id, hacker_id, name, and the sums of total_submissions, total_accepted_submissions, total_views, and total_unique_views for each contest sorted by contest_id. 
+Exclude the contest from the result if all four sums are .
+Note: A specific contest can be used to screen candidates at more than one college, but each college only holds  screening contest.
+*/
+
+
+WITH uno AS (
+    SELECT 
+        challenge_id,
+        SUM(total_views) AS TV,
+        SUM(total_unique_views) AS TUV
+    FROM View_Stats
+    GROUP BY challenge_id
+),
+
+dos AS (
+    SELECT 
+        challenge_id,
+        SUM(total_submissions) AS TS, 
+        SUM(total_accepted_submissions) AS TAS
+    FROM Submission_Stats
+    GROUP BY challenge_id
+)
+
+SELECT 
+ct.contest_id,
+ct.hacker_id,
+ct.name, 
+s.TS,
+s.TAS,
+u.TV,
+u.TUV
+FROM Contests ct
+LEFT JOIN Colleges cl
+    ON ct.contest_id  = cl.contest_id 
+LEFT JOIN Challenges ch 
+    ON cl.college_id = ch.college_id 
+LEFT JOIN uno u
+    ON ch.challenge_id = u.challenge_id
+LEFT JOIN dos s
+    ON ch.challenge_id = s.challenge_id
+GROUP BY challenge_id
+HAVING SUM(s.TS) > 0 OR SUM(s.TAS) > 0 OR SUM(u.TV) > 0OR SUM(u.TUV) > 0
+ORDER BY ct.contest_id
+
+
