@@ -644,7 +644,6 @@ Exclude the contest from the result if all four sums are .
 Note: A specific contest can be used to screen candidates at more than one college, but each college only holds  screening contest.
 */
 
-
 WITH uno AS (
     SELECT 
         challenge_id,
@@ -667,10 +666,10 @@ SELECT
 ct.contest_id,
 ct.hacker_id,
 ct.name, 
-s.TS,
-s.TAS,
-u.TV,
-u.TUV
+COALESCE(SUM(s.TS), 0),
+COALESCE(SUM(s.TAS), 0),
+COALESCE(SUM(u.TV), 0),
+COALESCE(SUM(u.TUV), 0)
 FROM Contests ct
 LEFT JOIN Colleges cl
     ON ct.contest_id  = cl.contest_id 
@@ -680,8 +679,111 @@ LEFT JOIN uno u
     ON ch.challenge_id = u.challenge_id
 LEFT JOIN dos s
     ON ch.challenge_id = s.challenge_id
-GROUP BY challenge_id
-HAVING SUM(s.TS) > 0 OR SUM(s.TAS) > 0 OR SUM(u.TV) > 0OR SUM(u.TUV) > 0
+GROUP BY ct.contest_id, ct.hacker_id, ct.name
+HAVING (
+    COALESCE(SUM(s.TS), 0) + 
+    COALESCE(SUM(s.TAS), 0) + 
+    COALESCE(SUM(u.TV), 0) + 
+    COALESCE(SUM(u.TUV), 0)
+) > 0
 ORDER BY ct.contest_id
 
+/*
+Julia conducted a  days of learning SQL contest. The start date of the contest was March 01, 2016 and the end date was March 15, 2016.
+Write a query to print total number of unique hackers who made at least  submission each day (starting on the first day of the contest), and find the hacker_id and name of the hacker who made maximum number of submissions each day.
+If more than one such hacker has a maximum number of submissions, print the lowest hacker_id. 
+The query should print this information for each day of the contest, sorted by the date.
+The following tables hold contest data:
+Hackers: The hacker_id is the id of the hacker, and name is the name of the hacker.
+Submissions: The submission_date is the date of the submission, submission_id is the id of the submission, hacker_id is the id of the hacker who made the submission, and score is the score of the submission.
+*/
 
+WITH hackers_consistentes AS (
+    SELECT
+        hacker_id,
+        submission_date,
+        DENSE_RANK() OVER(ORDER BY submission_date) AS dia_del_concurso,
+        DENSE_RANK() OVER(PARTITION BY hacker_id ORDER BY submission_date ASC) AS ranking_consecutivo
+    FROM Submissions
+),
+/* Ejemplo de salida:
+433 2016-03-01 1 1
+433 2016-03-09 9 2
+433 2016-03-15 15 3
+463 2016-03-09 9 1
+463 2016-03-13 13 2
+463 2016-03-14 14 3
+533 2016-03-02 2 1 */
+
+mas_entregas AS (
+    SELECT
+        hacker_id,
+        submission_date,
+        ROW_NUMBER() OVER(
+            PARTITION BY submission_date 
+            ORDER BY COUNT(submission_id) DESC, hacker_id ASC
+        ) AS posicion 
+    FROM Submissions
+    GROUP BY submission_date, hacker_id
+),
+
+/* Ejemplo de salida:
+81314 2016-03-01 1
+433 2016-03-01 2
+650 2016-03-01 3
+2697 2016-03-01 4
+3124 2016-03-01 5
+3162 2016-03-01 6 */
+
+filtro_consistentes AS (
+    SELECT 
+        submission_date,
+        COUNT(DISTINCT hacker_id) AS total_hackers_perfectos
+    FROM hackers_consistentes
+    WHERE dia_del_concurso = ranking_consecutivo
+    GROUP BY submission_date
+),
+/* Ejemplo de salida:
+2016-03-01 112
+2016-03-02 59
+2016-03-03 51
+2016-03-04 49
+2016-03-05 49 */
+
+ganador_del_dia AS (
+    SELECT 
+        submission_date,
+        hacker_id
+    FROM mas_entregas
+    WHERE posicion = 1
+)
+
+/* Ejemplo de salida:
+2016-03-01 81314
+2016-03-02 39091
+2016-03-03 18105
+2016-03-04 533
+2016-03-05 7891
+2016-03-06 84307
+2016-03-07 80682 */
+
+SELECT 
+    f.submission_date,
+    f.total_hackers_perfectos,
+    g.hacker_id,
+    h.name
+FROM filtro_consistentes f
+INNER JOIN ganador_del_dia g 
+    ON f.submission_date = g.submission_date
+INNER JOIN Hackers h 
+    ON g.hacker_id = h.hacker_id
+ORDER BY f.submission_date ASC;
+
+/* Ejemplo de salida:
+2016-03-01 112 81314 Denise
+2016-03-02 59 39091 Ruby
+2016-03-03 51 18105 Roy
+2016-03-04 49 533 Patrick
+2016-03-05 49 7891 Stephanie
+2016-03-06 49 84307 Evelyn
+2016-03-07 35 80682 Deborah */
