@@ -787,3 +787,71 @@ ORDER BY f.submission_date ASC;
 2016-03-05 49 7891 Stephanie
 2016-03-06 49 84307 Evelyn
 2016-03-07 35 80682 Deborah */
+
+/*
+P(R) represents a pattern drawn by Julia in R rows.
+The following pattern represents P(5):
+* * * * * 
+* * * * 
+* * * 
+* * 
+*
+Write a query to print the pattern P(20).
+*/
+
+WITH RECURSIVE filas AS (
+    SELECT 20 AS n 
+    UNION ALL
+    SELECT n - 1 
+    FROM filas 
+    WHERE n > 1
+)
+SELECT 
+    REPEAT('* ', n)
+FROM filas;
+
+/*
+P(R) represents a pattern drawn by Julia in R rows.
+The following pattern represents P(5):
+* 
+* * 
+* * * 
+* * * * 
+* * * * *
+Write a query to print the pattern P(20).
+*/
+
+WITH RECURSIVE filas AS (
+    SELECT 1 AS n 
+    UNION ALL
+    SELECT n + 1 
+    FROM filas 
+    WHERE n < 20
+)
+SELECT 
+    REPEAT('* ', n)
+FROM filas;
+
+/*
+Write a query to print all prime numbers less than or equal to . 
+Print your result on a single line, and use the ampersand () character as your separator (instead of a space).
+For example, the output for all prime numbers  would be:
+2&3&5&7
+*/
+
+WITH RECURSIVE filas AS (
+    SELECT 2 AS n 
+    UNION ALL
+    SELECT n + 1 
+    FROM filas 
+    WHERE n < 1000 
+)
+SELECT 
+    GROUP_CONCAT(f1.n SEPARATOR '&')
+FROM filas f1
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM filas f2 
+    WHERE f2.n < f1.n   
+      AND f1.n % f2.n = 0    
+);
