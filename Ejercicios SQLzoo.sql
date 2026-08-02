@@ -82,3 +82,42 @@ WHERE name LIKE '%a%'
   AND name LIKE '%o%' 
   AND name LIKE '%u%'
   AND name NOT LIKE '% %';
+
+-- 1. Winners from 1950
+SELECT yr, subject, winner
+  FROM nobel
+ WHERE yr = 1950
+
+-- 2. 1962 Literature
+SELECT winner
+  FROM nobel
+ WHERE yr = 1962
+   AND subject = 'Literature'
+
+-- 3. Albert Einstein
+SELECT yr, subject
+FROM nobel
+WHERE winner = 'Albert Einstein'
+
+-- 4. Recent Peace Prizes
+SELECT winner
+FROM nobel
+WHERE subject = 'Peace' and yr > 1999
+
+-- 5. Literature in the 1980's
+SELECT yr, subject, winner
+FROM nobel
+WHERE subject = 'Literature ' and yr BETWEEN 1980 and 1989
+
+-- 6. Only Presidents
+SELECT * FROM nobel
+ WHERE winner IN ('Theodore Roosevelt',
+                  'Thomas Woodrow Wilson',
+                  'Barack Obama',
+                  'Jimmy Carter')
+
+-- 7. John
+SELECT winner FROM nobel
+ WHERE winner LIKE 'John%'
+
+ 
