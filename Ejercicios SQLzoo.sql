@@ -120,4 +120,45 @@ SELECT * FROM nobel
 SELECT winner FROM nobel
  WHERE winner LIKE 'John%'
 
- 
+-- 8. Chemistry and Physics from different years
+SELECT yr, subject, winner
+FROM nobel
+WHERE (subject = 'Physics' and yr = 1980) or (subject = 'Chemistry' and yr = 1984)
+
+-- 9. Exclude Chemists and Medics
+SELECT yr, subject, winner
+FROM nobel
+WHERE yr = 1980 and subject NOT IN ('Chemistry', 'Medicine')
+
+-- 10. Early Medicine, Late Literature
+SELECT yr, subject, winner
+FROM nobel
+WHERE (subject = 'Medicine' and yr < 1910) or (subject = 'Literature' and yr >= 2004)
+
+-- 11. Umlaut
+SELECT *
+FROM nobel
+WHERE winner LIKE 'Peter Gr_nberg'
+
+-- 12. Apostrophe
+SELECT *
+FROM nobel
+WHERE winner LIKE 'Eugene o_neill'
+
+-- 13. Knights of the realm
+SELECT winner,	yr, subject
+FROM nobel
+WHERE winner LIKE 'Sir%'
+ORDER BY yr DESC, winner
+
+-- 14. Chemistry and Physics last
+SELECT winner, subject
+  FROM nobel
+ WHERE yr = 1984
+ ORDER BY subject, winner
+
+-- 1. Bigger than Russia
+SELECT name FROM world
+  WHERE population >
+     (SELECT population FROM world
+      WHERE name='Russia')
