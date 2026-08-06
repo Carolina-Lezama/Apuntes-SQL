@@ -162,3 +162,60 @@ SELECT name FROM world
   WHERE population >
      (SELECT population FROM world
       WHERE name='Russia')
+
+-- 2. Richer than UK
+SELECT name 
+FROM world
+WHERE continent='Europe' 
+  and (gdp / population) >
+    (SELECT gdp / population FROM world
+    WHERE name='United Kingdom')
+
+-- 3. Neighbours of Argentina and Australia
+SELECT name, continent  
+FROM world
+WHERE continent IN 
+(
+SELECT continent
+FROM world
+WHERE name = 'Argentina' or name = 'Australia'
+)
+ORDER BY name
+
+-- 4. Between Canada and Poland
+SELECT name, population
+FROM world
+WHERE population >
+(
+SELECT population
+FROM world
+WHERE name = 'United Kingdom'
+)
+and population < (
+SELECT population
+FROM world
+WHERE name = 'Germany' 
+)
+
+-- 5. Percentages of Germany
+SELECT 
+  name, 
+  CONCAT(
+    CAST( -- Convertir de un tipo de valor a otro
+      ROUND(
+        100 * population / (SELECT population FROM world WHERE name = 'Germany')
+      ,0) 
+    as int),
+  '%')
+FROM world
+WHERE continent = 'Europe'
+
+-- 6. Bigger than every country in Europe
+SELECT name
+FROM world
+WHERE gdp > ALL(
+    SELECT gdp
+    FROM world
+    WHERE continent = 'Europe' 
+      AND gdp > 0
+);
