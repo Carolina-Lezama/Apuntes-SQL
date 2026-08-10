@@ -250,3 +250,15 @@ WHERE name <= ALL (
     WHERE y.continent = x.continent -- Para cada continente
 );
 
+-- 9. Difficult Questions That Utilize Techniques Not Covered In Prior Sections
+
+SELECT name, continent, population
+FROM world x
+WHERE 25000000 >= ALL
+( 
+    SELECT MAX(population)
+    FROM world y
+    WHERE y.continent = x.continent  
+    GROUP BY continent
+    HAVING MAX(population) <= 25000000
+);
