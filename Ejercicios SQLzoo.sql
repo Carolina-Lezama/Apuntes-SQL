@@ -219,3 +219,34 @@ WHERE gdp > ALL(
     WHERE continent = 'Europe' 
       AND gdp > 0
 );
+
+/*
+We can refer to values in the outer SELECT within the inner SELECT. 
+We can name the tables so that we can tell the difference between the inner and outer versions.
+*/
+
+-- 7. Largest in each continen
+SELECT continent, name, area FROM world x
+  WHERE area >= ALL
+    (SELECT area FROM world y
+        WHERE y.continent=x.continent
+          AND area > 0) -- evitar nulos
+
+/*
+En SQL, las cadenas de texto se pueden comparar con los mismos operadores numéricos (<, <=, >). 
+Para SQL, 'Alemania' < 'Brasil' es verdadero porque la "A" va antes que la "B".
+*/
+
+-- 8. First country of each continent (alphabetically)
+
+SELECT continent, name
+FROM world x
+WHERE name <= ALL ( 
+-- el nombre es menor o igual a todos y cada uno de los valores que devuelve la subconsulta
+-- Basta con que falle contra uno solo para que ALL devuelva falso. La fila se descarta.
+
+    SELECT name
+    FROM world y
+    WHERE y.continent = x.continent -- Para cada continente
+);
+
